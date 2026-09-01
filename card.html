@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Таблички на столы — SDD Doctor</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Печатная табличка на стол. A5 альбомная, одна на страницу.
+ *
+ * Стили здесь свои, а не из дизайн-системы, и это осознанно:
+ * сайт тёмный, а печать должна быть СВЕТЛОЙ. Тёмный лист выжигает картридж,
+ * а QR белым по чёрному читается не всеми сканерами телефонов.
+ * ------------------------------------------------------------------------- */
+
+.sheet {
+  width: 210mm; height: 148mm;
+  background: #fff; color: #0B1220;
+  padding: 12mm 14mm;
+  display: flex; flex-direction: column;
+  font-family: var(--font);
+  margin: 0 auto 8mm;
+  box-shadow: 0 6px 28px rgba(0,0,0,.5);   /* только на экране, при печати не виден */
+  position: relative; overflow: hidden;
+}
+.sheet::before {                            /* фирменная полоса сверху */
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6mm;
+  background: linear-gradient(90deg, #22D3EE, #2E7BF6 55%, #8B5CF6);
+}
+
+.sheet .head { display: flex; align-items: center; gap: 4mm; margin-top: 3mm; }
+.sheet .head img { width: 12mm; height: 12mm; border-radius: 50%; }
+.sheet .head .ev { font-weight: 800; font-size: 5mm; letter-spacing: .2px; }
+.sheet .head .sub { font-size: 3.4mm; color: #5A6880; }
+
+.sheet .body { flex: 1; display: flex; gap: 10mm; align-items: center; }
+
+.sheet .left { flex: 1; min-width: 0; }
+.sheet .tno-label { font-size: 4mm; font-weight: 800; letter-spacing: 1.5px; color: #5A6880; text-transform: uppercase; }
+/* Номер стола — сплошным цветом, а не градиентным текстом.
+   background-clip:text печатается только при включённой «Фоновой графике»,
+   иначе главный элемент таблички исчез бы с листа целиком. */
+.sheet .tno { font-size: 42mm; font-weight: 900; line-height: .9; letter-spacing: -2mm;
+              color: #2E7BF6; }
+@media screen {
+  .sheet .tno {
+    background: linear-gradient(135deg, #22D3EE, #2E7BF6 55%, #8B5CF6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+}
+.sheet .who { display: flex; align-items: center; gap: 5mm; margin-top: 5mm; }
+.sheet .who .ava { width: 20mm; height: 20mm; border-radius: 3mm; overflow: hidden; flex: none; }
+.sheet .who .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet .who .ava.ph { background: linear-gradient(135deg, #22D3EE, #8B5CF6);
+                      display: grid; place-items: center; color: #fff; font-size: 7mm; font-weight: 800; }
+.sheet .name { font-size: 8mm; font-weight: 800; line-height: 1.1; }
+.sheet .role { font-size: 4mm; color: #5A6880; margin-top: 1mm; }
+.sheet .spec { display: inline-block; margin-top: 3mm; padding: 1.5mm 4mm;
+               font-size: 3.8mm; font-weight: 600; color: #1D4ED8;
+               border: .4mm solid #BFDBFE; background: #EFF6FF; border-radius: 20mm; }
+
+.sheet .right { width: 62mm; text-align: center; flex: none; }
+.sheet .right img.qr { width: 58mm; height: 58mm; display: block; }
+.sheet .qr-cap { font-size: 3.6mm; color: #5A6880; margin-top: 2mm; line-height: 1.3; }
+
+.sheet .foot { display: flex; align-items: center; justify-content: space-between;
+               border-top: .4mm solid #E2E8F0; padding-top: 3mm; font-size: 3.6mm; color: #5A6880; }
+.sheet .rule-strong { font-size: 4.6mm; font-weight: 800; color: #0B1220; }
+
+.warn { color: #B91C1C; font-size: 4mm; font-weight: 700; }
+
+@page { size: A5 landscape; margin: 0; }
+
+@media print {
+  body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .wrap { max-width: none; padding: 0; }
+  header.top { display: none; }
+  .sheet { box-shadow: none; margin: 0; page-break-after: always; break-after: page; }
+  .sheet:last-child { page-break-after: auto; break-after: auto; }
+}
+</style>
+</head>
+<body>
+
+<header class="top no-print" id="hdr"></header>
+
+<div class="wrap">
+  <div class="banner hidden no-print" id="banner"></div>
+  <div class="no-print" id="controls"></div>
+  <div id="sheets"><div class="skel"></div></div>
+  <footer class="no-print" id="foot"></footer>
+</div>
+
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/mock.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Таблички на столы для печати. Доступ: card.html?t=<admin_token>
+ *
+ * QR на всех табличках ОДИН и тот же — общий, на витрину докторов.
+ * Дип-линки на конкретный стол делать не стали: человек, отсканировавший код
+ * у занятого стола, упёрся бы в «мест нет», не увидев остальных докторов.
+ * Табличка отвечает за навигацию по залу (крупный номер и фамилия),
+ * а выбор доктора происходит на витрине.
+ * ------------------------------------------------------------------------- */
+
+const TOKEN = App.qs('t');
+let DOCS = [];
+
+const $ = (id) => document.getElementById(id);
+const deny = (m) => { $('sheets').innerHTML = `<div class="notice">${App.esc(m)}</div>`; };
+
+async function load() {
+  if (!TOKEN) return deny('Нужен токен организатора: card.html?t=<токен>');
+  try {
+    DOCS = await App.rpc('admin_list_doctors', { p_token: TOKEN });
+    render();
+  } catch (e) {
+    if (e.code === 'P0001') return deny('Доступ запрещён. Проверьте ссылку.');
+    deny('Не удалось загрузить докторов. Проверьте связь.');
+  }
+}
+
+function render() {
+  const active = DOCS.filter(d => d.active);
+
+  $('controls').innerHTML = `
+    <div class="row-between" style="margin:18px 0 14px">
+      <div>
+        <div class="section-title" style="margin:0">Таблички на столы</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:4px">
+          A5 альбомная, по одной на страницу. Печатать на плотной бумаге,
+          в настройках печати снять «Поля» и включить «Фоновая графика».
+        </div>
+      </div>
+      <button class="btn sm" id="btnPrint">Печать</button>
+    </div>`;
+  $('btnPrint').onclick = () => window.print();
+
+  if (!active.length) return deny('Нет активных докторов. Заведите их в админке.');
+
+  $('sheets').innerHTML = active.map(sheet).join('');
+  $('foot').textContent =
+    `Готово табличек: ${active.length}. QR ведёт на стол, а не на фамилию — при замене доктора ссылка остаётся рабочей.`;
+}
+
+function sheet(d) {
+  const n = d.table_no;
+  const ini = App.esc(App.initials(d.name));
+
+  // Один и тот же общий QR на всех табличках — ведёт на витрину докторов.
+  const qr = `<img class="qr" src="qr/main.png" alt="QR на запись">
+       <div class="qr-cap">Наведите камеру телефона,<br>выберите доктора и свободное время</div>`;
+
+  return `
+    <div class="sheet">
+      <div class="head">
+        <img src="assets/logo.png" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="ev">${App.esc(CONFIG.EVENT)} · Визит к SDD-доктору</div>
+          <div class="sub">${App.esc(App.fmtDate(App.mskDate(CONFIG.DAY, '12:00')))} · ${App.esc(CONFIG.PLACE)} · практическая зона</div>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="left">
+          <div class="tno-label">Стол</div>
+          <div class="tno">${n ? App.esc(n) : '—'}</div>
+          ${n ? '' : '<div class="warn">Номер стола не задан — проставьте в админке</div>'}
+
+          <div class="who">
+            <div class="ava" data-ini="${ini}">
+              <img src="assets/doctors/${App.esc(d.id)}.jpg" alt="" onerror="App.avatarFallback(this)">
+            </div>
+            <div style="min-width:0">
+              <div class="name">${App.esc(d.name)}</div>
+              ${d.role ? `<div class="role">${App.esc(d.role)}</div>` : ''}
+            </div>
+          </div>
+
+          ${d.specialty ? `<div><span class="spec">${App.esc(d.specialty)}</span></div>` : ''}
+        </div>
+
+        <div class="right">${qr}</div>
+      </div>
+
+      <div class="foot">
+        <div class="rule-strong">Приём только по записи</div>
+        <div>${App.esc(CONFIG.WINDOW.start)}–${App.esc(CONFIG.WINDOW.end)} ·
+             приём ${App.esc(CONFIG.SLOT_MINUTES)} мин · опоздание ${App.esc(CONFIG.HOLD_MINUTES)} мин</div>
+      </div>
+    </div>`;
+}
+
+App.renderHeader($('hdr'), 'Таблички на столы');
+load();
+</script>
+</body>
+</html>

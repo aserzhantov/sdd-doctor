@@ -242,6 +242,15 @@ h1 {
 .slot.past { opacity: .25; }
 .slot.mine { background: var(--grad); border-color: transparent; color: #08111F; }
 
+/* Слот, к которому относится открытая форма. Отличается от .mine намеренно:
+   .mine — уже подтверждённая бронь, .sel — ещё только выбор. */
+.slot.sel {
+  border-color: var(--cyan);
+  background: rgba(34,211,238,.10);
+  box-shadow: 0 0 0 2px rgba(34,211,238,.30);
+}
+.slot.sel .tag { color: var(--cyan); }
+
 .offgrid { margin-top: 14px; font-size: 13px; color: var(--muted); }
 .offgrid ul { margin: 6px 0 0; padding-left: 18px; }
 

@@ -102,10 +102,15 @@ function renderDocs() {
   $('btnNew').onclick = () => openForm(null);
   document.querySelectorAll('[data-edit]').forEach(b =>
     b.onclick = () => openForm(DOCS.find(d => d.id === b.dataset.edit)));
+  // В демо-режиме ссылку надо выдавать тоже демо-режимную, иначе она уведёт
+  // в боевой Supabase и покажет «нет связи».
+  const mock = /[?&]mock=1/.test(location.search) ? '&mock=1' : '';
+
   document.querySelectorAll('[data-link]').forEach(b => b.onclick = () => {
     const d = DOCS.find(x => x.id === b.dataset.link);
     if (!d.token) return App.toast('У доктора нет токена — сохраните карточку заново', 'err');
-    const url = `${base}/doctor.html?doc=${d.id}&t=${d.token}`;
+    const url = `${base}/doctor.html?doc=${d.id}&t=${d.token}${mock}`;
+    // Буфер обмена доступен не везде (нет https, отказ в правах) — тогда диалог.
     navigator.clipboard?.writeText(url)
       .then(() => App.toast('Ссылка скопирована', 'ok'))
       .catch(() => prompt('Скопируйте ссылку для доктора:', url));

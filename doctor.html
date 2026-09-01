@@ -92,11 +92,15 @@ function render() {
 
   $('root').innerHTML = `
     <div class="row-between" style="margin:18px 0 16px">
-      <div>
-        <div style="font-size:20px;font-weight:800">${App.esc(DOCTOR.name)}</div>
-        <div style="color:var(--muted);font-size:13px">
-          ${DOCTOR.table_no ? 'Стол №' + App.esc(DOCTOR.table_no) + ' · ' : ''}
-          сегодня приёмов: <b>${guests.length}</b>
+      <div class="slot-head" style="margin:0">
+        ${App.avatarHTML(DOCTOR)}
+        <div>
+          <div style="font-size:20px;font-weight:800">${App.esc(DOCTOR.name)}</div>
+          ${DOCTOR.role ? `<div style="color:var(--muted);font-size:13px">${App.esc(DOCTOR.role)}</div>` : ''}
+          <div style="color:var(--muted);font-size:13px">
+            ${DOCTOR.table_no ? 'Стол №' + App.esc(DOCTOR.table_no) + ' · ' : ''}
+            сегодня приёмов: <b>${guests.length}</b>
+          </div>
         </div>
       </div>
       <button class="btn ghost sm" id="btnReload">Обновить</button>

@@ -54,6 +54,9 @@ let online = true;
 // Экран подтверждения живёт вне хэша, поэтому его надо держать явно:
 // иначе следующий load() перерисует страницу и затрёт «Вы записаны».
 let DONE = null;
+// Выбранный слот и черновик формы. Держим отдельно от DOM, чтобы автообновление
+// занятости не стирало подсветку и уже набранные имя с командой.
+let SELECTED = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -203,11 +206,17 @@ function renderSlots(id) {
   // видно организатору в админке и лечится удалением брони.
   const locked = !!mine || !online || App.eventPhase() === 'after';
 
+  // Выбранный слот подсвечивается и переживает перерисовку: иначе человек
+  // не понимает, к какому времени относится форма внизу.
+  const selHere = (SELECTED && SELECTED.doctorId === d.id) ? SELECTED : null;
+
   const cells = slots.map(s => {
     const st = App.slotState(s, occ, myKey);
-    const tag = { taken: 'занято', blocked: 'недоступно', mine: 'вы', past: '', free: '' }[st];
+    const isSel = selHere && selHere.key === s.key && st === 'free';
+    const tag = isSel ? 'выбрано'
+      : { taken: 'занято', blocked: 'недоступно', mine: 'вы', past: '', free: '' }[st];
     const dis = (st === 'free' && !locked) ? '' : 'disabled';
-    return `<button class="slot ${st}" ${dis} data-key="${s.key}">
+    return `<button class="slot ${st}${isSel ? ' sel' : ''}" ${dis} data-key="${s.key}">
       <span class="time">${App.fmtTime(s.start)}</span>
       ${tag ? `<span class="tag">${tag}</span>` : ''}
     </button>`;
@@ -240,36 +249,49 @@ function renderSlots(id) {
 
     <div id="formHost"></div>`;
 
-  $('btnBack').onclick = () => { location.hash = ''; };
+  $('btnBack').onclick = () => { SELECTED = null; location.hash = ''; };
 
   host.querySelectorAll('.slot:not([disabled])').forEach(el => {
-    el.onclick = () => openForm(d, slots.find(s => s.key === Number(el.dataset.key)));
+    el.onclick = () => {
+      const key = Number(el.dataset.key);
+      SELECTED = { doctorId: d.id, key, name: '', team: '' };
+      renderSlots(d.id);
+      $('formHost').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
   });
+
+  if (selHere) renderForm(d, slots.find(s => s.key === selHere.key));
 }
 
 /* --- Форма записи -------------------------------------------------------- */
 
-function openForm(doctor, slot) {
-  const host = $('formHost');
-  host.innerHTML = `
+function renderForm(doctor, slot) {
+  if (!slot) { SELECTED = null; return; }
+
+  $('formHost').innerHTML = `
     <div class="form">
       <div class="section-title" style="margin-top:0">
         Запись на ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}
       </div>
       <div class="field" id="fName">
         <label for="iName">Как вас зовут</label>
-        <input id="iName" maxlength="60" autocomplete="name" placeholder="Имя и фамилия">
+        <input id="iName" maxlength="60" autocomplete="name" placeholder="Имя и фамилия"
+               value="${App.esc(SELECTED.name)}">
         <div class="err">Укажите имя, от 2 символов</div>
       </div>
       <div class="field" id="fTeam">
         <label for="iTeam">Команда или подразделение</label>
-        <input id="iTeam" maxlength="80" autocomplete="organization" placeholder="Например, кластер Платежи">
+        <input id="iTeam" maxlength="80" autocomplete="organization" placeholder="Например, кластер Платежи"
+               value="${App.esc(SELECTED.team)}">
         <div class="err">Укажите команду, от 2 символов</div>
       </div>
       <button class="btn" id="btnBook">Записаться</button>
     </div>`;
-  host.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
+  // Черновик держим в SELECTED: страница обновляет занятость раз в минуту,
+  // и без этого набранный текст пропадал бы прямо из-под рук.
+  $('iName').oninput = (e) => { SELECTED.name = e.target.value; };
+  $('iTeam').oninput = (e) => { SELECTED.team = e.target.value; };
   $('btnBook').onclick = () => submit(doctor, slot);
 }
 
@@ -300,6 +322,7 @@ async function submit(doctor, slot) {
       doctor_id: doctor.id, slot_start: slot.start.toISOString(),
     });
     DONE = { doctor, slot };
+    SELECTED = null;
     load();
 
   } catch (e) {
@@ -307,7 +330,7 @@ async function submit(doctor, slot) {
     btn.disabled = false;
     btn.textContent = 'Записаться';
     // Слот могли занять миллисекундой раньше — показываем актуальную картину.
-    if (e.code === '23505') { $('formHost').innerHTML = ''; load(); }
+    if (e.code === '23505') { SELECTED = null; load(); }
   }
 }
 
@@ -331,7 +354,7 @@ function showDone(doctor, slot) {
         <button class="btn ghost" id="btnToList">К списку докторов</button>
       </div>
     </div>`;
-  $('btnToList').onclick = () => { DONE = null; location.hash = ''; render(); };
+  $('btnToList').onclick = () => { DONE = null; SELECTED = null; location.hash = ''; render(); };
 }
 
 /* --- Отмена -------------------------------------------------------------- */
@@ -353,6 +376,12 @@ async function cancelBooking() {
 
 /* --- Роутинг ------------------------------------------------------------- */
 
+/* Хэш только один: #doctor=<id> — им переключается шаг 2 внутри страницы,
+ * чтобы работали кнопка «назад» и обычная ссылка.
+ *
+ * Дип-линков со столов сознательно НЕТ: единственный QR ведёт на витрину.
+ * Иначе человек, отсканировавший код у занятого стола, упирается в «мест нет»
+ * и не видит остальных докторов, а выбор по специализации — суть продукта. */
 function currentDoctorId() {
   const m = location.hash.match(/doctor=([a-z0-9-]+)/i);
   return m ? m[1] : null;
@@ -384,7 +413,7 @@ renderStatic();
 tickClock();
 setInterval(tickClock, 30000);
 
-window.addEventListener('hashchange', () => { DONE = null; render(); });
+window.addEventListener('hashchange', () => { DONE = null; SELECTED = null; render(); });
 load();
 
 // Пока связи нет — тихо пробуем восстановиться.

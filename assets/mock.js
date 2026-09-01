@@ -15,34 +15,43 @@
   const KEY = 'sdd_mock_db';
   const t = (h, m) => new Date(`${CONFIG.DAY}T${h}:${m}:00+03:00`).toISOString();
 
+  /* Данные заведомо вымышленные и нужны только чтобы разглядеть вёрстку.
+   * Настоящих докторов и тем столов на момент написания никто не знает —
+   * экспертов ещё ищут. Реальные фамилии сюда подставлять нельзя:
+   * демо-биографии выдуманы, а скриншот легко уходит дальше. */
   const SEED = {
     doctors: [
-      { id:'legacy', name:'Павел Харламов', role:'Тимлид, кластер Межбанковские расчёты',
-        specialty:'SDD в легаси и большом кластере', table_no:1, sort:10, active:true,
-        win_start:null, win_end:null, token:'mock-legacy',
-        bio:'Перевёл на SDD восемь команд в кластере с ядром, которое нельзя переписать. Знает, что делать, когда спека упирается в систему возрастом старше разработчика.' },
-      { id:'framework', name:'Михаил Аникин', role:'Архитектор платформы разработки',
-        specialty:'Собственный SDD-фреймворк и инструменты', table_no:2, sort:20, active:true,
-        win_start:null, win_end:null, token:'mock-framework',
-        bio:'Собрал внутренний фреймворк спек с нуля методом проб и ошибок. Расскажет, что из этого выжило, а что пришлось выбросить через месяц.' },
-      { id:'context', name:'Искандер Габдрахманов', role:'Руководитель разработки',
-        specialty:'Общий контекст, RAG, много микросервисов', table_no:3, sort:30, active:true,
-        win_start:null, win_end:null, token:'mock-context',
-        bio:'Ландшафт на 300+ микросервисов и общий контекст в RAG. Помогает там, где агент теряется в размере системы и начинает выдумывать.' },
-      { id:'adoption', name:'Артем Ильясов', role:'Продакт, платформа разработки',
-        specialty:'Внедрение в команде: с чего начать, метрики, сопротивление', table_no:4, sort:40, active:true,
-        win_start:null, win_end:null, token:'mock-adoption',
-        bio:'Заводил SDD в командах, которые об этом не просили. Про первые две недели, честные метрики и работу с теми, кто против.' },
+      { id:'demo-1', name:'Доктор Первый', role:'Демо-данные · должность и команда',
+        specialty:'Демо · с чем помогает', table_no:1, sort:10, active:true,
+        win_start:null, win_end:null, token:'mock-1',
+        bio:'Демо-описание для проверки вёрстки. Здесь будет 2–4 предложения про реальный опыт доктора: с какими системами работал и с чем может помочь.' },
+      { id:'demo-2', name:'Доктор Второй', role:'Демо-данные · должность и команда',
+        specialty:'Демо · с чем помогает', table_no:2, sort:20, active:true,
+        win_start:null, win_end:null, token:'mock-2',
+        bio:'Демо-описание для проверки вёрстки. Текст специально длинный, чтобы увидеть, как карточка обрезает его на третьей строке многоточием.' },
+      { id:'demo-3', name:'Доктор Третий', role:'Демо-данные · должность и команда',
+        specialty:'Демо · с чем помогает', table_no:3, sort:30, active:true,
+        win_start:null, win_end:null, token:'mock-3',
+        bio:'Демо-описание для проверки вёрстки. У этого доктора занята часть слотов, чтобы посмотреть на жёлтый бейдж «осталось мало».' },
+      { id:'demo-4', name:'Доктор Четвёртый', role:'Демо-данные · должность и команда',
+        specialty:'Демо · с чем помогает', table_no:4, sort:40, active:true,
+        win_start:null, win_end:null, token:'mock-4',
+        bio:'Демо-описание для проверки вёрстки. Этот доктор свободен целиком — видно зелёный бейдж на всю сетку.' },
     ],
     bookings: [
-      { id:'m1', doctor_id:'legacy',  slot_start:t('12','00'), kind:'participant',
-        name:'Анна Смирнова', team:'Кластер Платежи', cancel_code:'x1' },
-      { id:'m2', doctor_id:'legacy',  slot_start:t('12','30'), kind:'participant',
-        name:'Игорь Петров',  team:'Розница, бэкенд', cancel_code:'x2' },
-      { id:'m3', doctor_id:'legacy',  slot_start:t('13','00'), kind:'blocked',
+      { id:'m1', doctor_id:'demo-1', slot_start:t('12','00'), kind:'participant',
+        name:'Участник Первый', team:'Демо-команда А', cancel_code:'x1' },
+      { id:'m2', doctor_id:'demo-1', slot_start:t('12','30'), kind:'participant',
+        name:'Участник Второй', team:'Демо-команда Б', cancel_code:'x2' },
+      { id:'m3', doctor_id:'demo-1', slot_start:t('13','00'), kind:'blocked',
         name:null, team:null, cancel_code:'x3' },
-      { id:'m4', doctor_id:'context', slot_start:t('12','00'), kind:'participant',
-        name:'Мария Ким',     team:'Риски',           cancel_code:'x4' },
+      // у третьего занято почти всё — проверка бейджа «Остался 1 слот»
+      ...['12','13','14'].flatMap((h, i) => [
+        { id:'m4' + i, doctor_id:'demo-3', slot_start:t(h,'00'), kind:'participant',
+          name:'Участник ' + (i + 3), team:'Демо-команда В', cancel_code:'x4' + i },
+        { id:'m5' + i, doctor_id:'demo-3', slot_start:t(h,'30'), kind:'participant',
+          name:'Участник ' + (i + 6), team:'Демо-команда Г', cancel_code:'x5' + i },
+      ]).slice(0, 5),
     ],
   };
 
