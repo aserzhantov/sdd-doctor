@@ -42,6 +42,7 @@
 
 <script src="config.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/mock.js"></script>
 <script>
 /* ---------------------------------------------------------------------------
  * Экран участника. Сценарий и все состояния: specs/10-flows.md
@@ -50,6 +51,9 @@
 let DOCTORS = [];
 let OCC = [];
 let online = true;
+// Экран подтверждения живёт вне хэша, поэтому его надо держать явно:
+// иначе следующий load() перерисует страницу и затрёт «Вы записаны».
+let DONE = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -295,7 +299,7 @@ async function submit(doctor, slot) {
       id: res.id, cancel_code: res.cancel_code,
       doctor_id: doctor.id, slot_start: slot.start.toISOString(),
     });
-    showDone(doctor, slot);
+    DONE = { doctor, slot };
     load();
 
   } catch (e) {
@@ -308,6 +312,8 @@ async function submit(doctor, slot) {
 }
 
 function showDone(doctor, slot) {
+  $('viewList').classList.add('hidden');
+  $('viewSlots').classList.remove('hidden');
   $('viewSlots').innerHTML = `
     <div class="done">
       <div class="tick">✓</div>
@@ -325,7 +331,7 @@ function showDone(doctor, slot) {
         <button class="btn ghost" id="btnToList">К списку докторов</button>
       </div>
     </div>`;
-  $('btnToList').onclick = () => { location.hash = ''; };
+  $('btnToList').onclick = () => { DONE = null; location.hash = ''; render(); };
 }
 
 /* --- Отмена -------------------------------------------------------------- */
@@ -361,6 +367,8 @@ function render() {
     $('banner').textContent = `${CONFIG.EVENT} завершён. Спасибо, что пришли!`;
   }
 
+  if (DONE) { showDone(DONE.doctor, DONE.slot); return; }
+
   const id = currentDoctorId();
   if (id && DOCTORS.some(d => d.id === id)) renderSlots(id);
   else renderList();
@@ -376,7 +384,7 @@ renderStatic();
 tickClock();
 setInterval(tickClock, 30000);
 
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', () => { DONE = null; render(); });
 load();
 
 // Пока связи нет — тихо пробуем восстановиться.

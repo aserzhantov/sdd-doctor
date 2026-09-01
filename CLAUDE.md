@@ -22,6 +22,7 @@
 | [specs/20-data-model.md](specs/20-data-model.md) | Схема БД, контракты RPC, правила слотов |
 | [specs/30-design-system.md](specs/30-design-system.md) | Токены, компоненты, правила визуала |
 | [specs/40-tech-and-deploy.md](specs/40-tech-and-deploy.md) | Хостинг, ключи, деплой, чек-лист дня |
+| [specs/50-test-plan.md](specs/50-test-plan.md) | Как проверить локально, сценарии приёмки, как заводить докторов |
 
 ## Стек
 
@@ -80,3 +81,11 @@
 python3 -m http.server 8765   # из корня проекта
 ```
 Открыть `http://localhost:8765/`.
+
+## Демо-режим
+
+Параметр `?mock=1` подменяет Supabase на данные в памяти браузера
+([assets/mock.js](assets/mock.js)). Нужен, чтобы прощёлкать продукт без настроенного
+бэкенда. Без параметра файл не делает ничего — на боевой путь не влияет.
+
+Сценарии ручной приёмки и ссылки на все роли — [specs/50-test-plan.md](specs/50-test-plan.md).
