@@ -110,16 +110,21 @@ function renderMine() {
   const mine = App.lsGet(App.KEY_BOOKING);
   if (!mine) { host.innerHTML = ''; return; }
 
+  // Доктора могли выключить в админке — тогда его нет в v_doctors.
+  // Показывать сырой идентификатор нельзя, это пугает и ничего не объясняет.
   const doc = DOCTORS.find(d => d.id === mine.doctor_id);
   const start = new Date(mine.slot_start);
   host.innerHTML = `
     <div class="mine-card">
       <div class="label">Ваша запись</div>
-      <div class="who">${App.esc(doc ? doc.name : mine.doctor_id)}</div>
+      <div class="who">${doc ? App.esc(doc.name) : 'Доктор снят с приёма'}</div>
       <div class="when">
         ${App.esc(App.fmtTime(start))}–${App.esc(App.fmtTime(App.addMinutes(start, CONFIG.SLOT_MINUTES)))}
         ${doc && doc.table_no ? ' · стол №' + App.esc(doc.table_no) : ''}
       </div>
+      ${doc ? '' : `<div class="when" style="color:var(--busy)">
+        Уточните у организаторов — запись лучше отменить.
+      </div>`}
       <div class="btn-row">
         <button class="btn ghost sm" id="btnCancel">Отменить запись</button>
       </div>
@@ -170,7 +175,7 @@ function renderList() {
         <div class="body">
           <div class="name">${App.esc(d.name)}</div>
           ${d.role ? `<div class="role">${App.esc(d.role)}</div>` : ''}
-          ${d.specialty ? `<span class="spec">${App.esc(d.specialty)}</span>` : ''}
+          ${d.specialty ? `<span class="spec"><span class="spec-t">${App.esc(d.specialty)}</span></span>` : ''}
           ${d.bio ? `<div class="bio">${App.esc(d.bio)}</div>` : ''}
           <div class="foot">
             ${d.table_no ? `<span class="table-no">Стол <b>№${App.esc(d.table_no)}</b></span>` : ''}

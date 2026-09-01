@@ -78,7 +78,9 @@
    остаётся отцентрованным по высоте плашки. */
 .sheet .who-col { flex: 1; min-width: 0; min-height: 0; overflow: hidden;
                   display: flex; flex-direction: column; justify-content: flex-start; }
-.sheet .who { display: flex; align-items: center; gap: 6mm; }
+/* flex-start, а не center: при имени в две строки текстовый блок становится выше
+   фото, и по центру фото съезжало вниз, ломая выравнивание с плашкой номера. */
+.sheet .who { display: flex; align-items: flex-start; gap: 6mm; }
 .sheet .who .ava { width: 24mm; height: 24mm; border-radius: 4mm; overflow: hidden; flex: none; }
 .sheet .who .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sheet .who .ava.ph { background: linear-gradient(135deg, #22D3EE, #8B5CF6);
@@ -89,12 +91,14 @@
 .sheet .clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
 .sheet .name { font-size: 9.4mm; font-weight: 800; line-height: 1.08; -webkit-line-clamp: 2; }
 .sheet .role { font-size: 4.6mm; color: #5A6880; margin-top: 1.5mm; line-height: 1.25; -webkit-line-clamp: 2; }
-/* inline-box, а не box: иначе чип растягивается во всю колонку и читается
-   как полоса. Так он обжимает текст, но всё ещё ограничен двумя строками. */
-.sheet .spec { display: -webkit-inline-box; margin-top: 5mm; padding: 2mm 5mm; max-width: 100%;
+/* Обрезка живёт во внутреннем .spec-t, а не на самом чипе: при clamp прямо
+   на padding-элементе из-под второй строки выглядывал обрезок третьей.
+   inline-block — чтобы чип обжимал текст, а не растягивался полосой во всю колонку. */
+.sheet .spec { display: inline-block; margin-top: 5mm; padding: 2mm 5mm; max-width: 100%;
                font-size: 4.8mm; font-weight: 600; color: #1D4ED8; line-height: 1.3;
-               border: .5mm solid #BFDBFE; background: #EFF6FF; border-radius: 8mm;
-               -webkit-line-clamp: 2; }
+               border: .5mm solid #BFDBFE; background: #EFF6FF; border-radius: 8mm; }
+.sheet .spec-t { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+                 -webkit-line-clamp: 2; }
 .sheet .bio-title { margin-top: 6mm; font-size: 3.8mm; font-weight: 800; letter-spacing: 1mm;
                     color: #94A3B8; text-transform: uppercase; }
 .sheet .bio { margin-top: 2mm; font-size: 4.6mm; line-height: 1.4; color: #334155;
@@ -229,7 +233,7 @@ function sheet(d) {
             </div>
           </div>
 
-          ${d.specialty ? `<div><span class="spec clamp">${App.esc(d.specialty)}</span></div>` : ''}
+          ${d.specialty ? `<div><span class="spec"><span class="spec-t">${App.esc(d.specialty)}</span></span></div>` : ''}
 
           ${d.bio ? `<div class="bio-title">Опыт</div>
                      <div class="bio clamp">${App.esc(d.bio)}</div>` : ''}

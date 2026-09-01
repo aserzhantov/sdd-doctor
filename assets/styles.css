@@ -187,10 +187,18 @@ h1 {
 .spec {
   display: inline-block; margin-top: 8px; padding: 4px 10px;
   font-size: 12px; font-weight: 600;
-  border-radius: 999px;
+  border-radius: 12px;
   color: var(--cyan);
   background: rgba(34,211,238,.09);
   border: 1px solid rgba(34,211,238,.28);
+  max-width: 100%;
+}
+/* Обрезка во внутреннем элементе, а не на самом чипе: clamp прямо на элементе
+   с padding оставляет выглядывающий обрезок следующей строки.
+   Нужна только в витрине — на экране доктора специализация показывается целиком. */
+.spec-t {
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
 }
 
 .doc .bio {
