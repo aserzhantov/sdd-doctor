@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#070C16">
+<title>Визит к SDD-доктору — SDD Day</title>
+<meta name="description" content="Запись на приём к SDD-доктору в практической зоне SDD Day, 14 сентября, БКЗ.">
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="top" id="hdr"></header>
+
+<div class="wrap">
+  <div class="banner hidden" id="banner"></div>
+
+  <p class="lead" id="lead"></p>
+
+  <div class="rules" id="rules"></div>
+  <p class="note-line" id="note"></p>
+
+  <div id="mine"></div>
+
+  <!-- ШАГ 1 — витрина докторов -->
+  <section id="viewList">
+    <div class="section-title">Выберите доктора</div>
+    <div class="doctors" id="docs">
+      <div class="skel"></div><div class="skel"></div>
+    </div>
+  </section>
+
+  <!-- ШАГ 2 — слоты выбранного доктора -->
+  <section id="viewSlots" class="hidden"></section>
+
+  <footer>
+    <div id="clock"></div>
+    <div style="margin-top:6px">Практическая зона · приём только по записи</div>
+  </footer>
+</div>
+
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Экран участника. Сценарий и все состояния: specs/10-flows.md
+ * ------------------------------------------------------------------------- */
+
+let DOCTORS = [];
+let OCC = [];
+let online = true;
+
+const $ = (id) => document.getElementById(id);
+
+/* --- Загрузка ------------------------------------------------------------ */
+
+async function load() {
+  try {
+    const [docs, occ] = await Promise.all([
+      App.select('v_doctors', 'select=*&order=sort.asc,name.asc'),
+      App.select('v_occupancy', 'select=*'),
+    ]);
+    DOCTORS = docs || [];
+    OCC = occ || [];
+    App.lsSet(App.KEY_DOCTORS, DOCTORS);   // кэш на случай потери связи
+    setOnline(true);
+  } catch (e) {
+    // Деградация: страница остаётся живой, показываем последний известный список.
+    DOCTORS = App.lsGet(App.KEY_DOCTORS, []) || [];
+    OCC = [];
+    setOnline(false);
+  }
+  render();
+}
+
+function setOnline(v) {
+  online = v;
+  const b = $('banner');
+  b.classList.toggle('hidden', v);
+  if (!v) {
+    b.textContent = DOCTORS.length
+      ? 'Запись временно недоступна — нет связи с сервером. Данные могут быть неактуальны.'
+      : 'Нет связи с сервером. Подойдите к столам в практической зоне.';
+  }
+}
+
+/* --- Общие блоки --------------------------------------------------------- */
+
+function renderStatic() {
+  App.renderHeader($('hdr'));
+  $('lead').textContent = CONFIG.LEAD;
+  // Короткие чипы: на 360–390px длинный текст в пилюле разъезжается в две строки.
+  $('rules').innerHTML = `
+    <span class="rule"><b>Только по записи</b></span>
+    <span class="rule">Приём <b>${CONFIG.SLOT_MINUTES} мин</b></span>
+    <span class="rule">Слот держим <b>${CONFIG.HOLD_MINUTES} мин</b></span>`;
+  $('note').textContent = 'Без записи доктор не принимает — выберите время заранее.';
+}
+
+function renderMine() {
+  const host = $('mine');
+  const mine = App.lsGet(App.KEY_BOOKING);
+  if (!mine) { host.innerHTML = ''; return; }
+
+  const doc = DOCTORS.find(d => d.id === mine.doctor_id);
+  const start = new Date(mine.slot_start);
+  host.innerHTML = `
+    <div class="mine-card">
+      <div class="label">Ваша запись</div>
+      <div class="who">${App.esc(doc ? doc.name : mine.doctor_id)}</div>
+      <div class="when">
+        ${App.esc(App.fmtTime(start))}–${App.esc(App.fmtTime(App.addMinutes(start, CONFIG.SLOT_MINUTES)))}
+        ${doc && doc.table_no ? ' · стол №' + App.esc(doc.table_no) : ''}
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost sm" id="btnCancel">Отменить запись</button>
+      </div>
+    </div>`;
+  $('btnCancel').onclick = cancelBooking;
+}
+
+/* --- Шаг 1: витрина ------------------------------------------------------ */
+
+function renderList() {
+  $('viewList').classList.remove('hidden');
+  $('viewSlots').classList.add('hidden');
+
+  const host = $('docs');
+
+  if (!DOCTORS.length) {
+    host.innerHTML = `<div class="notice">
+      ${online
+        ? 'Запись пока закрыта. Доктора появятся ближе к началу мероприятия.'
+        : 'Список докторов недоступен. Подойдите к столам в практической зоне.'}
+    </div>`;
+    return;
+  }
+
+  const phase = App.eventPhase();
+
+  host.innerHTML = DOCTORS.map(d => {
+    const { free, total } = online
+      ? App.freeCount(d, OCC)
+      : { free: null, total: null };
+
+    let badge = '';
+    if (free !== null) {
+      const cls  = free === 0 ? 'off' : (free <= 2 ? 'busy' : 'ok');
+      const word = free === 1 ? 'Остался 1 слот'
+                 : free === 2 ? 'Осталось 2 слота'
+                 : free === 0 ? 'Мест нет'
+                 : `Свободно ${free} из ${total}`;
+      badge = `<span class="badge ${cls}">${word}</span>`;
+    }
+
+    // Не даём провалиться в бронирование туда, где занимать нечего.
+    const locked = !online || free === 0 || phase === 'after';
+
+    return `
+      <button class="doc" data-id="${App.esc(d.id)}" ${locked ? 'disabled' : ''}>
+        ${App.avatarHTML(d)}
+        <div class="body">
+          <div class="name">${App.esc(d.name)}</div>
+          ${d.role ? `<div class="role">${App.esc(d.role)}</div>` : ''}
+          ${d.specialty ? `<span class="spec">${App.esc(d.specialty)}</span>` : ''}
+          ${d.bio ? `<div class="bio">${App.esc(d.bio)}</div>` : ''}
+          <div class="foot">
+            ${d.table_no ? `<span class="table-no">Стол <b>№${App.esc(d.table_no)}</b></span>` : ''}
+            ${badge}
+          </div>
+        </div>
+      </button>`;
+  }).join('');
+
+  host.querySelectorAll('.doc').forEach(el => {
+    el.onclick = () => { location.hash = 'doctor=' + el.dataset.id; };
+  });
+}
+
+/* --- Шаг 2: слоты -------------------------------------------------------- */
+
+function renderSlots(id) {
+  const d = DOCTORS.find(x => x.id === id);
+  if (!d) { location.hash = ''; return; }
+
+  $('viewList').classList.add('hidden');
+  const host = $('viewSlots');
+  host.classList.remove('hidden');
+
+  const slots = App.slotsFor(d);
+  const occ   = App.occupancyMap(OCC, d.id);
+  const mine  = App.lsGet(App.KEY_BOOKING);
+  const myKey = (mine && mine.doctor_id === d.id) ? new Date(mine.slot_start).getTime() : null;
+  const off   = App.offGrid(OCC.filter(r => r.doctor_id === d.id), slots);
+
+  // Мягкий лимит: одна активная запись на устройство (specs/10-flows.md).
+  // Ограничение клиентское и обходится другим браузером — злоупотребление
+  // видно организатору в админке и лечится удалением брони.
+  const locked = !!mine || !online || App.eventPhase() === 'after';
+
+  const cells = slots.map(s => {
+    const st = App.slotState(s, occ, myKey);
+    const tag = { taken: 'занято', blocked: 'недоступно', mine: 'вы', past: '', free: '' }[st];
+    const dis = (st === 'free' && !locked) ? '' : 'disabled';
+    return `<button class="slot ${st}" ${dis} data-key="${s.key}">
+      <span class="time">${App.fmtTime(s.start)}</span>
+      ${tag ? `<span class="tag">${tag}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  host.innerHTML = `
+    <button class="back" id="btnBack">← Все доктора</button>
+    <div class="slot-head">
+      ${App.avatarHTML(d)}
+      <div>
+        <div class="name" style="font-size:19px;font-weight:700">${App.esc(d.name)}</div>
+        ${d.role ? `<div class="role" style="font-size:13px;color:var(--muted)">${App.esc(d.role)}</div>` : ''}
+        ${d.table_no ? `<div class="table-no" style="margin-top:4px">Стол <b>№${App.esc(d.table_no)}</b></div>` : ''}
+      </div>
+    </div>
+    ${d.specialty ? `<div style="margin-top:10px"><span class="spec">${App.esc(d.specialty)}</span></div>` : ''}
+    ${d.bio ? `<p style="color:var(--muted);font-size:14px">${App.esc(d.bio)}</p>` : ''}
+
+    <div class="section-title">Свободное время</div>
+    ${mine ? `<div class="notice" style="margin-bottom:12px">
+      У вас уже есть запись${mine.doctor_id === d.id ? '' : ' к другому доктору'}.
+      Отмените её, чтобы записаться заново.
+    </div>` : ''}
+    <div class="slots" id="slotGrid">${cells}</div>
+
+    ${off.length ? `<div class="offgrid">
+      Занято вне текущей сетки:
+      <ul>${off.map(r => `<li>${App.fmtTime(new Date(r.slot_start))}</li>`).join('')}</ul>
+    </div>` : ''}
+
+    <div id="formHost"></div>`;
+
+  $('btnBack').onclick = () => { location.hash = ''; };
+
+  host.querySelectorAll('.slot:not([disabled])').forEach(el => {
+    el.onclick = () => openForm(d, slots.find(s => s.key === Number(el.dataset.key)));
+  });
+}
+
+/* --- Форма записи -------------------------------------------------------- */
+
+function openForm(doctor, slot) {
+  const host = $('formHost');
+  host.innerHTML = `
+    <div class="form">
+      <div class="section-title" style="margin-top:0">
+        Запись на ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}
+      </div>
+      <div class="field" id="fName">
+        <label for="iName">Как вас зовут</label>
+        <input id="iName" maxlength="60" autocomplete="name" placeholder="Имя и фамилия">
+        <div class="err">Укажите имя, от 2 символов</div>
+      </div>
+      <div class="field" id="fTeam">
+        <label for="iTeam">Команда или подразделение</label>
+        <input id="iTeam" maxlength="80" autocomplete="organization" placeholder="Например, кластер Платежи">
+        <div class="err">Укажите команду, от 2 символов</div>
+      </div>
+      <button class="btn" id="btnBook">Записаться</button>
+    </div>`;
+  host.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  $('btnBook').onclick = () => submit(doctor, slot);
+}
+
+async function submit(doctor, slot) {
+  const name = $('iName').value.trim();
+  const team = $('iTeam').value.trim();
+
+  const badName = name.length < 2 || name.length > 60;
+  const badTeam = team.length < 2 || team.length > 80;
+  $('fName').classList.toggle('bad', badName);
+  $('fTeam').classList.toggle('bad', badTeam);
+  if (badName || badTeam) return;
+
+  const btn = $('btnBook');
+  btn.disabled = true;
+  btn.textContent = 'Записываем…';
+
+  try {
+    const res = await App.rpc('book_slot', {
+      p_doctor_id:  doctor.id,
+      p_slot_start: slot.start.toISOString(),
+      p_name:       name,
+      p_team:       team,
+    });
+
+    App.lsSet(App.KEY_BOOKING, {
+      id: res.id, cancel_code: res.cancel_code,
+      doctor_id: doctor.id, slot_start: slot.start.toISOString(),
+    });
+    showDone(doctor, slot);
+    load();
+
+  } catch (e) {
+    App.toast(App.errText(e), 'err');
+    btn.disabled = false;
+    btn.textContent = 'Записаться';
+    // Слот могли занять миллисекундой раньше — показываем актуальную картину.
+    if (e.code === '23505') { $('formHost').innerHTML = ''; load(); }
+  }
+}
+
+function showDone(doctor, slot) {
+  $('viewSlots').innerHTML = `
+    <div class="done">
+      <div class="tick">✓</div>
+      <h2>Вы записаны</h2>
+      <div class="det">
+        <b>${App.esc(doctor.name)}</b><br>
+        ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}
+        ${doctor.table_no ? ' · стол №' + App.esc(doctor.table_no) : ''}
+      </div>
+      <p style="color:var(--muted);font-size:13.5px;max-width:44ch;margin:14px auto 0">
+        Подойдите к столу вовремя: доктор ждёт ${CONFIG.HOLD_MINUTES} минут,
+        дальше слот освобождается для других.
+      </p>
+      <div class="btn-row" style="max-width:420px;margin:18px auto 0">
+        <button class="btn ghost" id="btnToList">К списку докторов</button>
+      </div>
+    </div>`;
+  $('btnToList').onclick = () => { location.hash = ''; };
+}
+
+/* --- Отмена -------------------------------------------------------------- */
+
+async function cancelBooking() {
+  const mine = App.lsGet(App.KEY_BOOKING);
+  if (!mine) return;
+
+  try {
+    const ok = await App.rpc('cancel_booking', { p_id: mine.id, p_code: mine.cancel_code });
+    App.lsDel(App.KEY_BOOKING);
+    App.toast(ok ? 'Запись отменена' : 'Записи уже не было — возможно, её отменил организатор', ok ? 'ok' : '');
+    location.hash = '';
+    load();
+  } catch (e) {
+    App.toast(App.errText(e), 'err');
+  }
+}
+
+/* --- Роутинг ------------------------------------------------------------- */
+
+function currentDoctorId() {
+  const m = location.hash.match(/doctor=([a-z0-9-]+)/i);
+  return m ? m[1] : null;
+}
+
+function render() {
+  renderMine();
+  const phase = App.eventPhase();
+
+  if (phase === 'after') {
+    $('banner').classList.remove('hidden');
+    $('banner').textContent = `${CONFIG.EVENT} завершён. Спасибо, что пришли!`;
+  }
+
+  const id = currentDoctorId();
+  if (id && DOCTORS.some(d => d.id === id)) renderSlots(id);
+  else renderList();
+}
+
+function tickClock() {
+  $('clock').textContent = 'Время по Москве · ' + App.fmtTime(new Date());
+}
+
+/* --- Старт --------------------------------------------------------------- */
+
+renderStatic();
+tickClock();
+setInterval(tickClock, 30000);
+
+window.addEventListener('hashchange', render);
+load();
+
+// Пока связи нет — тихо пробуем восстановиться.
+setInterval(() => { if (!online) load(); }, 15000);
+// Раз в минуту обновляем занятость: слоты могли занять с других телефонов.
+setInterval(() => { if (online && !document.hidden) load(); }, 60000);
+</script>
+</body>
+</html>

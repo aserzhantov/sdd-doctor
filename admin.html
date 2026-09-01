@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#070C16">
+<meta name="robots" content="noindex">
+<title>Админка — SDD Doctor</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="top" id="hdr"></header>
+
+<div class="wrap">
+  <div class="banner hidden" id="banner"></div>
+  <div id="root"><div class="skel"></div></div>
+  <footer><div id="clock"></div></footer>
+</div>
+
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Админка. Сценарий 3 в specs/10-flows.md
+ * Доступ: admin.html?t=<admin_token>
+ *
+ * Что можно: заводить и править карточки докторов, удалять любые брони.
+ * Чего нельзя: менять тайминг — он в config.js и фиксируется до старта,
+ * см. CLAUDE.md.
+ * ------------------------------------------------------------------------- */
+
+const TOKEN = App.qs('t');
+let DOCS = [];
+let BOOKINGS = [];
+let TAB = 'docs';
+let editing = null;
+
+const $ = (id) => document.getElementById(id);
+const deny = (m) => { $('root').innerHTML = `<div class="notice">${App.esc(m)}</div>`; };
+
+async function load() {
+  if (!TOKEN) return deny('Ссылка неполная. Нужен токен организатора.');
+  try {
+    [DOCS, BOOKINGS] = await Promise.all([
+      App.rpc('admin_list_doctors', { p_token: TOKEN }),
+      App.rpc('admin_all_bookings', { p_token: TOKEN }),
+    ]);
+    $('banner').classList.add('hidden');
+    render();
+  } catch (e) {
+    if (e.code === 'P0001') return deny('Доступ запрещён. Проверьте ссылку.');
+    $('banner').classList.remove('hidden');
+    $('banner').textContent = 'Нет связи с сервером. Обновите страницу.';
+  }
+}
+
+/* --- Рендер -------------------------------------------------------------- */
+
+function render() {
+  $('root').innerHTML = `
+    <div class="tabs">
+      <button id="tDocs"  class="${TAB === 'docs' ? 'active' : ''}">Доктора (${DOCS.length})</button>
+      <button id="tBook"  class="${TAB === 'book' ? 'active' : ''}">Записи (${BOOKINGS.filter(b => b.kind === 'participant').length})</button>
+    </div>
+    <div id="tab"></div>`;
+  $('tDocs').onclick = () => { TAB = 'docs'; render(); };
+  $('tBook').onclick = () => { TAB = 'book'; render(); };
+  (TAB === 'docs' ? renderDocs : renderBookings)();
+}
+
+function renderDocs() {
+  const base = location.href.split('/').slice(0, -1).join('/');
+  $('tab').innerHTML = `
+    <div class="row-between" style="margin:18px 0 12px">
+      <div class="section-title" style="margin:0">Карточки докторов</div>
+      <button class="btn sm" id="btnNew">+ Добавить</button>
+    </div>
+    <div id="formHost"></div>
+    ${DOCS.map(d => `
+      <div class="card">
+        <div class="row-between">
+          <div style="min-width:0">
+            <div style="font-weight:700">${App.esc(d.name)}
+              ${d.active ? '' : '<span class="badge off" style="margin-left:6px">выключен</span>'}
+            </div>
+            <div style="color:var(--muted);font-size:13px">
+              <code>${App.esc(d.id)}</code>
+              ${d.table_no ? ' · стол №' + App.esc(d.table_no) : ''}
+              ${d.specialty ? ' · ' + App.esc(d.specialty) : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost sm" data-edit="${App.esc(d.id)}">Изменить</button>
+            <button class="btn ghost sm" data-link="${App.esc(d.id)}">Ссылка</button>
+          </div>
+        </div>
+      </div>`).join('')}`;
+
+  $('btnNew').onclick = () => openForm(null);
+  document.querySelectorAll('[data-edit]').forEach(b =>
+    b.onclick = () => openForm(DOCS.find(d => d.id === b.dataset.edit)));
+  document.querySelectorAll('[data-link]').forEach(b => b.onclick = () => {
+    const d = DOCS.find(x => x.id === b.dataset.link);
+    if (!d.token) return App.toast('У доктора нет токена — сохраните карточку заново', 'err');
+    const url = `${base}/doctor.html?doc=${d.id}&t=${d.token}`;
+    navigator.clipboard?.writeText(url)
+      .then(() => App.toast('Ссылка скопирована', 'ok'))
+      .catch(() => prompt('Скопируйте ссылку для доктора:', url));
+  });
+}
+
+function openForm(d) {
+  editing = d;
+  const v = (x) => App.esc(d ? (d[x] ?? '') : '');
+  $('formHost').innerHTML = `
+    <div class="form">
+      <div class="section-title" style="margin-top:0">${d ? 'Правка карточки' : 'Новый доктор'}</div>
+
+      <div class="field" id="fId">
+        <label for="iId">Идентификатор (латиница)</label>
+        <input id="iId" value="${v('id')}" ${d ? 'disabled' : ''} placeholder="например, harlamov">
+        <div class="err">Только латиница, цифры и дефис, 2–32 символа</div>
+      </div>
+      <div style="margin:-6px 0 14px;font-size:12.5px;color:var(--faint)">
+        Он же имя файла фото: <code>assets/doctors/${v('id') || '&lt;id&gt;'}.jpg</code> —
+        положить в репозиторий и запушить. Без файла будет аватар с инициалами.
+        После создания идентификатор не меняется: на нём завязаны ссылка доктора и QR стола.
+      </div>
+
+      <div class="field" id="fName">
+        <label for="iName">Имя и фамилия</label>
+        <input id="iName" value="${v('name')}" maxlength="80">
+        <div class="err">Минимум 2 символа</div>
+      </div>
+      <div class="field">
+        <label for="iRole">Должность и команда</label>
+        <input id="iRole" value="${v('role')}" maxlength="120">
+      </div>
+      <div class="field">
+        <label for="iSpec">Специализация — с чем помогает</label>
+        <input id="iSpec" value="${v('specialty')}" maxlength="120">
+      </div>
+      <div class="field">
+        <label for="iBio">Опыт, 2–4 предложения</label>
+        <textarea id="iBio" maxlength="600">${v('bio')}</textarea>
+      </div>
+      <div class="field">
+        <label for="iTable">Номер стола</label>
+        <input id="iTable" type="number" min="1" max="99" value="${v('table_no')}">
+      </div>
+      <div class="field">
+        <label for="iSort">Порядок в списке (меньше — выше)</label>
+        <input id="iSort" type="number" value="${d ? App.esc(d.sort ?? 100) : 100}">
+      </div>
+      <div class="field">
+        <label for="iWs">Личное окно приёма (пусто = ${CONFIG.WINDOW.start}–${CONFIG.WINDOW.end})</label>
+        <div style="display:flex;gap:8px">
+          <input id="iWs" placeholder="12:00" value="${d && d.win_start ? App.esc(d.win_start.slice(0,5)) : ''}">
+          <input id="iWe" placeholder="15:00" value="${d && d.win_end ? App.esc(d.win_end.slice(0,5)) : ''}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="iActive">Принимает</label>
+        <select id="iActive">
+          <option value="1" ${!d || d.active ? 'selected' : ''}>Да — виден участникам</option>
+          <option value="0" ${d && !d.active ? 'selected' : ''}>Нет — скрыт из витрины</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="btnSave">Сохранить</button>
+        <button class="btn ghost" id="btnCancelForm">Отмена</button>
+      </div>
+    </div>`;
+
+  $('btnCancelForm').onclick = () => { $('formHost').innerHTML = ''; };
+  $('btnSave').onclick = save;
+  $('formHost').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function save() {
+  const id   = ($('iId').value || '').trim().toLowerCase();
+  const name = ($('iName').value || '').trim();
+  const time = (v) => (v && /^\d{1,2}:\d{2}$/.test(v.trim())) ? v.trim() : null;
+
+  const badId = !/^[a-z0-9-]{2,32}$/.test(id);
+  $('fId').classList.toggle('bad', badId);
+  $('fName').classList.toggle('bad', name.length < 2);
+  if (badId || name.length < 2) return;
+
+  const btn = $('btnSave');
+  btn.disabled = true; btn.textContent = 'Сохраняем…';
+  try {
+    await App.rpc('admin_upsert_doctor', {
+      p_token:     TOKEN,
+      p_id:        id,
+      p_name:      name,
+      p_role:      $('iRole').value.trim() || null,
+      p_specialty: $('iSpec').value.trim() || null,
+      p_bio:       $('iBio').value.trim() || null,
+      p_table_no:  $('iTable').value ? Number($('iTable').value) : null,
+      p_win_start: time($('iWs').value),
+      p_win_end:   time($('iWe').value),
+      p_sort:      $('iSort').value ? Number($('iSort').value) : 100,
+      p_active:    $('iActive').value === '1',
+    });
+    App.toast(editing ? 'Карточка обновлена' : 'Доктор добавлен', 'ok');
+    $('formHost').innerHTML = '';
+    load();
+  } catch (e) {
+    App.toast(App.errText(e), 'err');
+    btn.disabled = false; btn.textContent = 'Сохранить';
+  }
+}
+
+/* --- Записи -------------------------------------------------------------- */
+
+function renderBookings() {
+  const rows = BOOKINGS.slice().sort((a, b) => new Date(a.slot_start) - new Date(b.slot_start));
+
+  $('tab').innerHTML = `
+    <div class="row-between" style="margin:18px 0 12px">
+      <div class="section-title" style="margin:0">Все записи</div>
+      <button class="btn sm" id="btnCsv">Экспорт CSV</button>
+    </div>
+    ${rows.length ? `<div class="card" style="padding:4px 8px"><div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Время</th><th>Доктор</th><th>Стол</th><th>Кто</th><th>Команда</th><th>Тип</th><th></th>
+        </tr></thead>
+        <tbody>${rows.map(b => `<tr>
+          <td class="mono">${App.fmtTime(new Date(b.slot_start))}</td>
+          <td>${App.esc(b.doctor_name)}</td>
+          <td>${b.table_no ? '№' + App.esc(b.table_no) : '—'}</td>
+          <td>${App.esc(b.name || '—')}</td>
+          <td>${App.esc(b.team || '—')}</td>
+          <td>${b.kind === 'blocked' ? 'блокировка' : 'запись'}</td>
+          <td><button class="btn danger sm" data-del="${App.esc(b.id)}">Удалить</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div></div>` : '<div class="notice">Записей пока нет.</div>'}`;
+
+  $('btnCsv').onclick = () => App.downloadCSV(`sdd-doctor-${CONFIG.DAY}.csv`, [
+    ['Время', 'Доктор', 'Стол', 'Имя', 'Команда', 'Тип'],
+    ...rows.map(b => [
+      App.fmtTime(new Date(b.slot_start)), b.doctor_name, b.table_no || '',
+      b.name || '', b.team || '', b.kind === 'blocked' ? 'блокировка' : 'запись',
+    ]),
+  ]);
+
+  document.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => {
+    const b = rows.find(x => x.id === btn.dataset.del);
+    const who = b.kind === 'blocked' ? 'блокировку' : `запись «${b.name}»`;
+    if (!confirm(`Удалить ${who} на ${App.fmtTime(new Date(b.slot_start))}?\nСлот освободится для других участников.`)) return;
+    try {
+      await App.rpc('admin_delete_booking', { p_token: TOKEN, p_id: b.id });
+      App.toast('Удалено', 'ok');
+      load();
+    } catch (e) { App.toast(App.errText(e), 'err'); }
+  });
+}
+
+function tickClock() { $('clock').textContent = 'Время по Москве · ' + App.fmtTime(new Date()); }
+
+App.renderHeader($('hdr'), 'Админка');
+tickClock();
+setInterval(tickClock, 30000);
+load();
+</script>
+</body>
+</html>

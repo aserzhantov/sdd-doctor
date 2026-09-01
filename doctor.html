@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#070C16">
+<meta name="robots" content="noindex">
+<title>Кабинет SDD-доктора</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="top" id="hdr"></header>
+
+<div class="wrap">
+  <div class="banner hidden" id="banner"></div>
+  <div id="root"><div class="skel"></div></div>
+
+  <footer><div id="clock"></div></footer>
+</div>
+
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Кабинет доктора. Сценарий 2 в specs/10-flows.md
+ * Доступ по секретной ссылке: doctor.html?doc=<id>&t=<token>
+ * ------------------------------------------------------------------------- */
+
+const DOC_ID = App.qs('doc');
+const TOKEN  = App.qs('t');
+
+let DOCTOR = null;
+let ROWS = [];
+let lastOk = null;
+
+const $ = (id) => document.getElementById(id);
+
+function deny(msg) {
+  $('root').innerHTML = `<div class="notice">${App.esc(msg)}</div>`;
+}
+
+async function load() {
+  if (!DOC_ID || !TOKEN) return deny('Ссылка неполная. Обратитесь к организатору.');
+
+  try {
+    // Карточка доктора берётся из публичной view — там нет ПДн, токен не нужен.
+    if (!DOCTOR) {
+      const docs = await App.select('v_doctors', `select=*&id=eq.${encodeURIComponent(DOC_ID)}`);
+      DOCTOR = (docs && docs[0]) || null;
+    }
+    ROWS = await App.rpc('doctor_bookings', { p_doctor_id: DOC_ID, p_token: TOKEN });
+    lastOk = new Date();
+    $('banner').classList.add('hidden');
+    render();
+  } catch (e) {
+    if (e.code === 'P0001') return deny('Ссылка недействительна. Обратитесь к организатору.');
+    // Сеть отвалилась — оставляем на экране последние успешные данные.
+    if (lastOk) {
+      $('banner').classList.remove('hidden');
+      $('banner').textContent = `Нет связи. Данные актуальны на ${App.fmtTime(lastOk)}.`;
+    } else {
+      deny('Не удалось загрузить данные. Проверьте связь и обновите страницу.');
+    }
+  }
+}
+
+function render() {
+  if (!DOCTOR) return deny('Доктор не найден или выключен организатором.');
+
+  const now   = new Date();
+  const slots = App.slotsFor(DOCTOR);
+  const occ   = App.occupancyMap(ROWS.map(r => ({ ...r, doctor_id: DOC_ID })), DOC_ID);
+  const off   = App.offGrid(ROWS, slots);
+
+  const guests = ROWS.filter(r => r.kind === 'participant');
+  const cur  = slots.find(s => s.start <= now && now < s.end && occ.get(s.key)?.kind === 'participant');
+  const next = slots.find(s => s.start > now && occ.get(s.key)?.kind === 'participant');
+
+  const card = (label, slot, empty) => {
+    const rec = slot ? occ.get(slot.key) : null;
+    return `<div class="now-card ${rec ? 'active' : ''}" style="margin-bottom:var(--gap)">
+      <div class="label">${label}</div>
+      <div class="big">${rec ? App.esc(rec.name) : empty}</div>
+      <div class="sub">${rec
+        ? `${App.esc(rec.team)} · ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}`
+        : ''}</div>
+    </div>`;
+  };
+
+  $('root').innerHTML = `
+    <div class="row-between" style="margin:18px 0 16px">
+      <div>
+        <div style="font-size:20px;font-weight:800">${App.esc(DOCTOR.name)}</div>
+        <div style="color:var(--muted);font-size:13px">
+          ${DOCTOR.table_no ? 'Стол №' + App.esc(DOCTOR.table_no) + ' · ' : ''}
+          сегодня приёмов: <b>${guests.length}</b>
+        </div>
+      </div>
+      <button class="btn ghost sm" id="btnReload">Обновить</button>
+    </div>
+
+    ${card('Сейчас', cur, 'Свободно')}
+    ${card('Следующий', next, 'Больше записей нет')}
+
+    <div class="card">
+      <h3>Расписание на день</h3>
+      ${slots.map(s => {
+        const rec = occ.get(s.key);
+        const past = s.end <= now;
+        const kind = rec ? rec.kind : 'free';
+        let right = '';
+        if (kind === 'free' && !past) {
+          right = `<button class="btn ghost sm" data-block="${s.key}">Заблокировать</button>`;
+        } else if (kind === 'blocked') {
+          right = `<button class="btn ghost sm" data-unblock="${s.key}">Освободить</button>`;
+        }
+        const who = kind === 'participant'
+          ? `<div><b>${App.esc(rec.name)}</b></div><div class="sm">${App.esc(rec.team)}</div>`
+          : kind === 'blocked'
+            ? `<div style="color:var(--muted)">Заблокировано</div>`
+            : `<div style="color:var(--faint)">Свободно</div>`;
+        return `<div class="line-item ${past ? 'is-past' : ''}">
+          <div class="t">${App.fmtTime(s.start)}</div>
+          <div class="n">${who}</div>
+          ${right}
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${off.length ? `<div class="card">
+      <h3>Вне текущей сетки</h3>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:10px">
+        Эти записи сделаны при другой длительности приёма. Организатор может удалить их в админке.
+      </div>
+      ${off.map(r => `<div class="line-item">
+        <div class="t">${App.fmtTime(new Date(r.slot_start))}</div>
+        <div class="n"><b>${App.esc(r.name || '—')}</b><div class="sm">${App.esc(r.team || '')}</div></div>
+      </div>`).join('')}
+    </div>` : ''}`;
+
+  $('btnReload').onclick = load;
+  document.querySelectorAll('[data-block]').forEach(b =>
+    b.onclick = () => setBlock(Number(b.dataset.block), true));
+  document.querySelectorAll('[data-unblock]').forEach(b =>
+    b.onclick = () => setBlock(Number(b.dataset.unblock), false));
+}
+
+async function setBlock(key, blocked) {
+  try {
+    await App.rpc('doctor_block_slot', {
+      p_doctor_id:  DOC_ID,
+      p_slot_start: new Date(key).toISOString(),
+      p_token:      TOKEN,
+      p_blocked:    blocked,
+    });
+    App.toast(blocked ? 'Слот заблокирован' : 'Слот освобождён', 'ok');
+    load();
+  } catch (e) {
+    App.toast(App.errText(e), 'err');
+    load();
+  }
+}
+
+function tickClock() { $('clock').textContent = 'Время по Москве · ' + App.fmtTime(new Date()); }
+
+App.renderHeader($('hdr'), 'Кабинет доктора');
+tickClock();
+setInterval(tickClock, 30000);
+load();
+setInterval(() => { if (!document.hidden) load(); }, 30000);
+</script>
+</body>
+</html>

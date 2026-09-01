@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#070C16">
+<meta name="robots" content="noindex">
+<title>Доска практической зоны — SDD Day</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="board-page">
+
+<header class="top" id="hdr"></header>
+
+<div class="wrap">
+  <div class="banner hidden" id="banner"></div>
+  <div id="root"><div class="skel"></div></div>
+  <footer><div id="clock"></div></footer>
+</div>
+
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Доска для дежурного по зоне. Сценарий 4 в specs/10-flows.md
+ * Доступ: board.html?t=<admin_token> — показывает имена, поэтому под токеном.
+ * Рассчитана на экран или планшет: крупный шрифт, взгляд издалека.
+ * ------------------------------------------------------------------------- */
+
+const TOKEN = App.qs('t');
+let DOCS = [], BOOKINGS = [];
+
+const $ = (id) => document.getElementById(id);
+const deny = (m) => { $('root').innerHTML = `<div class="notice">${App.esc(m)}</div>`; };
+
+async function load() {
+  if (!TOKEN) return deny('Нужен токен организатора.');
+  try {
+    [DOCS, BOOKINGS] = await Promise.all([
+      App.rpc('admin_list_doctors', { p_token: TOKEN }),
+      App.rpc('admin_all_bookings', { p_token: TOKEN }),
+    ]);
+    $('banner').classList.add('hidden');
+    render();
+  } catch (e) {
+    if (e.code === 'P0001') return deny('Доступ запрещён. Проверьте ссылку.');
+    $('banner').classList.remove('hidden');
+    $('banner').textContent = 'Нет связи с сервером.';
+  }
+}
+
+function render() {
+  const now = new Date();
+  const active = DOCS.filter(d => d.active);
+
+  if (!active.length) return deny('Нет активных докторов.');
+
+  $('root').innerHTML = `<div class="board">${active.map(d => {
+    const slots = App.slotsFor(d);
+    const occ = App.occupancyMap(BOOKINGS, d.id);
+
+    const cur = slots.find(s => s.start <= now && now < s.end);
+    const rec = cur ? occ.get(cur.key) : null;
+
+    const free = slots
+      .filter(s => s.start > now && !occ.get(s.key))
+      .slice(0, 4)
+      .map(s => App.fmtTime(s.start));
+
+    return `<div class="col">
+      <h3>${App.esc(d.name)}</h3>
+      <div class="tbl">${d.table_no ? 'Стол №' + App.esc(d.table_no) : ''}</div>
+
+      <div class="label" style="font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--cyan)">
+        Сейчас
+      </div>
+      <div class="cur">${
+        !rec ? 'Свободно' : (rec.kind === 'participant' ? App.esc(rec.name) : 'Перерыв')
+      }</div>
+      <div style="color:var(--muted)">${
+        rec && rec.kind === 'participant'
+          ? App.esc(rec.team) + ' · до ' + App.fmtTime(cur.end)
+          : (cur ? 'до ' + App.fmtTime(cur.end) : '')
+      }</div>
+
+      <div class="free-list">
+        ${free.length ? 'Свободно: ' + free.join(' · ') : 'Свободных слотов нет'}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function tickClock() {
+  $('clock').textContent = 'Время по Москве · ' + App.fmtTime(new Date());
+  // «Сейчас» и список свободных едут по часам, а не только по данным,
+  // поэтому перерисовываем даже когда с сервера ничего не менялось.
+  if (DOCS.length) render();
+}
+
+App.renderHeader($('hdr'), 'Практическая зона');
+tickClock();
+load();
+setInterval(() => { if (!document.hidden) load(); }, 30000);
+setInterval(tickClock, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+.DS_Store
+.playwright-mcp/
+.claude/settings.local.json
+
+# Внутренние материалы Сбера — не место в публичном репозитории
+*.pptx
+*.docx
