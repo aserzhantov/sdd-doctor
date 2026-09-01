@@ -3,7 +3,7 @@
 Файл кладётся сюда с именем, равным идентификатору доктора из админки:
 
 ```
-assets/doctors/<id>.jpg      например assets/doctors/harlamov.jpg
+assets/doctors/<id>.jpg      например assets/doctors/ivanov.jpg
 ```
 
 Нет файла — рисуется градиентный аватар с инициалами, страница не ломается.

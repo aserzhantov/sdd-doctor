@@ -15,7 +15,7 @@ create extension if not exists pgcrypto;
 -- -----------------------------------------------------------------------------
 
 create table if not exists public.doctors (
-  id         text primary key,             -- 'harlamov' — он же имя файла assets/doctors/<id>.jpg
+  id         text primary key,             -- 'ivanov' — он же имя файла assets/doctors/<id>.jpg
   name       text not null,
   role       text,                         -- должность и команда
   specialty  text,                         -- с чем помогает
