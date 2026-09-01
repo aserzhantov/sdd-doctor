@@ -9,41 +9,44 @@
 <link rel="stylesheet" href="assets/styles.css">
 <style>
 /* ---------------------------------------------------------------------------
- * Печатная табличка на стол. A5 альбомная, одна на страницу.
+ * Печатная табличка на стол. A4 альбомная (297×210 мм), одна на страницу.
  *
  * Стили здесь свои, а не из дизайн-системы, и это осознанно:
  * сайт тёмный, а печать должна быть СВЕТЛОЙ. Тёмный лист выжигает картридж,
  * а QR белым по чёрному читается не всеми сканерами телефонов.
+ *
+ * Все размеры в мм и подобраны под A4. При смене формата масштабировать надо
+ * ВСЁ вместе с листом, иначе на большом листе останется мелкая вёрстка.
  * ------------------------------------------------------------------------- */
 
 .sheet {
-  width: 210mm; height: 148mm;
+  width: 297mm; height: 210mm;
   background: #fff; color: #0B1220;
-  padding: 12mm 14mm;
+  padding: 17mm 20mm;
   display: flex; flex-direction: column;
   font-family: var(--font);
-  margin: 0 auto 8mm;
+  margin: 0 auto 10mm;
   box-shadow: 0 6px 28px rgba(0,0,0,.5);   /* только на экране, при печати не виден */
   position: relative; overflow: hidden;
 }
 .sheet::before {                            /* фирменная полоса сверху */
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6mm;
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8mm;
   background: linear-gradient(90deg, #22D3EE, #2E7BF6 55%, #8B5CF6);
 }
 
-.sheet .head { display: flex; align-items: center; gap: 4mm; margin-top: 3mm; }
-.sheet .head img { width: 12mm; height: 12mm; border-radius: 50%; }
-.sheet .head .ev { font-weight: 800; font-size: 5mm; letter-spacing: .2px; }
-.sheet .head .sub { font-size: 3.4mm; color: #5A6880; }
+.sheet .head { display: flex; align-items: center; gap: 5mm; margin-top: 2mm; }
+.sheet .head img { width: 17mm; height: 17mm; border-radius: 50%; }
+.sheet .head .ev { font-weight: 800; font-size: 7mm; letter-spacing: .2px; }
+.sheet .head .sub { font-size: 4.6mm; color: #5A6880; }
 
-.sheet .body { flex: 1; display: flex; gap: 10mm; align-items: center; }
+.sheet .body { flex: 1; display: flex; gap: 14mm; align-items: center; }
 
 .sheet .left { flex: 1; min-width: 0; }
-.sheet .tno-label { font-size: 4mm; font-weight: 800; letter-spacing: 1.5px; color: #5A6880; text-transform: uppercase; }
+.sheet .tno-label { font-size: 5.4mm; font-weight: 800; letter-spacing: 2mm; color: #5A6880; text-transform: uppercase; }
 /* Номер стола — сплошным цветом, а не градиентным текстом.
    background-clip:text печатается только при включённой «Фоновой графике»,
    иначе главный элемент таблички исчез бы с листа целиком. */
-.sheet .tno { font-size: 42mm; font-weight: 900; line-height: .9; letter-spacing: -2mm;
+.sheet .tno { font-size: 80mm; font-weight: 900; line-height: .88; letter-spacing: -4mm;
               color: #2E7BF6; }
 @media screen {
   .sheet .tno {
@@ -51,28 +54,32 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 }
-.sheet .who { display: flex; align-items: center; gap: 5mm; margin-top: 5mm; }
-.sheet .who .ava { width: 20mm; height: 20mm; border-radius: 3mm; overflow: hidden; flex: none; }
+.sheet .who { display: flex; align-items: center; gap: 7mm; margin-top: 7mm; }
+.sheet .who .ava { width: 28mm; height: 28mm; border-radius: 4mm; overflow: hidden; flex: none; }
 .sheet .who .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sheet .who .ava.ph { background: linear-gradient(135deg, #22D3EE, #8B5CF6);
-                      display: grid; place-items: center; color: #fff; font-size: 7mm; font-weight: 800; }
-.sheet .name { font-size: 8mm; font-weight: 800; line-height: 1.1; }
-.sheet .role { font-size: 4mm; color: #5A6880; margin-top: 1mm; }
-.sheet .spec { display: inline-block; margin-top: 3mm; padding: 1.5mm 4mm;
-               font-size: 3.8mm; font-weight: 600; color: #1D4ED8;
-               border: .4mm solid #BFDBFE; background: #EFF6FF; border-radius: 20mm; }
+                      display: grid; place-items: center; color: #fff; font-size: 10mm; font-weight: 800; }
+.sheet .name { font-size: 11.5mm; font-weight: 800; line-height: 1.1; }
+.sheet .role { font-size: 5.4mm; color: #5A6880; margin-top: 1.5mm; }
+.sheet .spec { display: inline-block; margin-top: 5mm; padding: 2mm 6mm;
+               font-size: 5.2mm; font-weight: 600; color: #1D4ED8;
+               border: .5mm solid #BFDBFE; background: #EFF6FF; border-radius: 20mm; }
 
-.sheet .right { width: 62mm; text-align: center; flex: none; }
-.sheet .right img.qr { width: 58mm; height: 58mm; display: block; }
-.sheet .qr-cap { font-size: 3.6mm; color: #5A6880; margin-top: 2mm; line-height: 1.3; }
+.sheet .right { width: 88mm; text-align: center; flex: none; }
+.sheet .right img.qr { width: 84mm; height: 84mm; display: block; }
+.sheet .qr-cap { font-size: 4.8mm; color: #5A6880; margin-top: 3mm; line-height: 1.3; }
 
 .sheet .foot { display: flex; align-items: center; justify-content: space-between;
-               border-top: .4mm solid #E2E8F0; padding-top: 3mm; font-size: 3.6mm; color: #5A6880; }
-.sheet .rule-strong { font-size: 4.6mm; font-weight: 800; color: #0B1220; }
+               border-top: .5mm solid #E2E8F0; padding-top: 4mm; font-size: 4.8mm; color: #5A6880; }
+.sheet .rule-strong { font-size: 6.2mm; font-weight: 800; color: #0B1220; }
 
-.warn { color: #B91C1C; font-size: 4mm; font-weight: 700; }
+.warn { color: #B91C1C; font-size: 5mm; font-weight: 700; }
 
-@page { size: A5 landscape; margin: 0; }
+/* Лист шире, чем контейнер сайта, — иначе превью обрезалось бы по краям. */
+.wrap { max-width: none; }
+#sheets { overflow-x: auto; }
+
+@page { size: A4 landscape; margin: 0; }
 
 @media print {
   body { background: #fff !important; }
@@ -134,7 +141,7 @@ function render() {
       <div>
         <div class="section-title" style="margin:0">Таблички на столы</div>
         <div style="color:var(--muted);font-size:13px;margin-top:4px">
-          A5 альбомная, по одной на страницу. Печатать на плотной бумаге,
+          A4 альбомная, по одной на страницу. Печатать на плотной бумаге,
           в настройках печати снять «Поля» и включить «Фоновая графика».
         </div>
       </div>
