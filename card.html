@@ -39,14 +39,28 @@
 .sheet .head .ev { font-weight: 800; font-size: 7mm; letter-spacing: .2px; }
 .sheet .head .sub { font-size: 4.6mm; color: #5A6880; }
 
-.sheet .body { flex: 1; display: flex; gap: 14mm; align-items: center; }
+/* Три зоны вместо двух: СТОЛ | КТО ЭТО И ЧЕМ ПОМОЖЕТ | КАК ЗАПИСАТЬСЯ.
+   В двухколоночном варианте центр листа пустовал: имя и чип не заполняли
+   ширину. Теперь номер вынесен в отдельную панель, а освободившийся центр
+   занимает описание опыта доктора. */
+/* min-height:0 + overflow обязательны: без них длинное описание раздувает
+   .body и выдавливает подвал за край листа, где его срезает overflow:hidden.
+   Тексты дополнительно ограничены по строкам ниже. */
+.sheet .body { flex: 1; min-height: 0; overflow: hidden;
+               display: flex; gap: 10mm; align-items: stretch; padding: 6mm 0; }
 
-.sheet .left { flex: 1; min-width: 0; }
-.sheet .tno-label { font-size: 5.4mm; font-weight: 800; letter-spacing: 2mm; color: #5A6880; text-transform: uppercase; }
-/* Номер стола — сплошным цветом, а не градиентным текстом.
+/* --- Зона 1: номер стола --- */
+.sheet .tcol {
+  width: 62mm; flex: none;
+  border: .6mm solid #DBEAFE; border-radius: 6mm; background: #F5F9FF;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.sheet .tno-label { font-size: 5.4mm; font-weight: 800; letter-spacing: 2mm;
+                    color: #5A6880; text-transform: uppercase; }
+/* Номер — сплошным цветом, а не градиентным текстом.
    background-clip:text печатается только при включённой «Фоновой графике»,
    иначе главный элемент таблички исчез бы с листа целиком. */
-.sheet .tno { font-size: 80mm; font-weight: 900; line-height: .88; letter-spacing: -4mm;
+.sheet .tno { font-size: 74mm; font-weight: 900; line-height: .95; letter-spacing: -3.5mm;
               color: #2E7BF6; }
 @media screen {
   .sheet .tno {
@@ -54,20 +68,35 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 }
-.sheet .who { display: flex; align-items: center; gap: 7mm; margin-top: 7mm; }
-.sheet .who .ava { width: 28mm; height: 28mm; border-radius: 4mm; overflow: hidden; flex: none; }
+
+/* --- Зона 2: доктор --- */
+.sheet .who-col { flex: 1; min-width: 0; min-height: 0; overflow: hidden;
+                  display: flex; flex-direction: column; justify-content: center; }
+.sheet .who { display: flex; align-items: center; gap: 6mm; }
+.sheet .who .ava { width: 24mm; height: 24mm; border-radius: 4mm; overflow: hidden; flex: none; }
 .sheet .who .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sheet .who .ava.ph { background: linear-gradient(135deg, #22D3EE, #8B5CF6);
-                      display: grid; place-items: center; color: #fff; font-size: 10mm; font-weight: 800; }
-.sheet .name { font-size: 11.5mm; font-weight: 800; line-height: 1.1; }
-.sheet .role { font-size: 5.4mm; color: #5A6880; margin-top: 1.5mm; }
-.sheet .spec { display: inline-block; margin-top: 5mm; padding: 2mm 6mm;
-               font-size: 5.2mm; font-weight: 600; color: #1D4ED8;
-               border: .5mm solid #BFDBFE; background: #EFF6FF; border-radius: 20mm; }
+                      display: grid; place-items: center; color: #fff; font-size: 9mm; font-weight: 800; }
 
-.sheet .right { width: 88mm; text-align: center; flex: none; }
-.sheet .right img.qr { width: 84mm; height: 84mm; display: block; }
-.sheet .qr-cap { font-size: 4.8mm; color: #5A6880; margin-top: 3mm; line-height: 1.3; }
+/* Длинные ФИО и должности встречаются, поэтому все тексты ограничены
+   по числу строк — макет не должен зависеть от того, что напишут в админке. */
+.sheet .clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.sheet .name { font-size: 9.4mm; font-weight: 800; line-height: 1.08; -webkit-line-clamp: 2; }
+.sheet .role { font-size: 4.6mm; color: #5A6880; margin-top: 1.5mm; line-height: 1.25; -webkit-line-clamp: 2; }
+.sheet .spec { margin-top: 5mm; padding: 2mm 5mm; max-width: 100%;
+               font-size: 4.8mm; font-weight: 600; color: #1D4ED8; line-height: 1.3;
+               border: .5mm solid #BFDBFE; background: #EFF6FF; border-radius: 8mm;
+               -webkit-line-clamp: 2; }
+.sheet .bio-title { margin-top: 6mm; font-size: 3.8mm; font-weight: 800; letter-spacing: 1mm;
+                    color: #94A3B8; text-transform: uppercase; }
+.sheet .bio { margin-top: 2mm; font-size: 4.6mm; line-height: 1.4; color: #334155;
+              -webkit-line-clamp: 5; }
+
+/* --- Зона 3: запись --- */
+.sheet .right { width: 68mm; flex: none; display: flex; flex-direction: column;
+                align-items: center; justify-content: center; }
+.sheet .right img.qr { width: 66mm; height: 66mm; display: block; }
+.sheet .qr-cap { font-size: 4.4mm; color: #5A6880; margin-top: 3mm; line-height: 1.3; text-align: center; }
 
 .sheet .foot { display: flex; align-items: center; justify-content: space-between;
                border-top: .5mm solid #E2E8F0; padding-top: 4mm; font-size: 4.8mm; color: #5A6880; }
@@ -175,22 +204,27 @@ function sheet(d) {
       </div>
 
       <div class="body">
-        <div class="left">
+        <div class="tcol">
           <div class="tno-label">Стол</div>
           <div class="tno">${n ? App.esc(n) : '—'}</div>
-          ${n ? '' : '<div class="warn">Номер стола не задан — проставьте в админке</div>'}
+          ${n ? '' : '<div class="warn" style="text-align:center;padding:0 4mm">Номер стола не задан<br>— проставьте в админке</div>'}
+        </div>
 
+        <div class="who-col">
           <div class="who">
             <div class="ava" data-ini="${ini}">
               <img src="assets/doctors/${App.esc(d.id)}.jpg" alt="" onerror="App.avatarFallback(this)">
             </div>
             <div style="min-width:0">
-              <div class="name">${App.esc(d.name)}</div>
-              ${d.role ? `<div class="role">${App.esc(d.role)}</div>` : ''}
+              <div class="name clamp">${App.esc(d.name)}</div>
+              ${d.role ? `<div class="role clamp">${App.esc(d.role)}</div>` : ''}
             </div>
           </div>
 
-          ${d.specialty ? `<div><span class="spec">${App.esc(d.specialty)}</span></div>` : ''}
+          ${d.specialty ? `<div class="spec clamp">${App.esc(d.specialty)}</div>` : ''}
+
+          ${d.bio ? `<div class="bio-title">Опыт</div>
+                     <div class="bio clamp">${App.esc(d.bio)}</div>` : ''}
         </div>
 
         <div class="right">${qr}</div>
