@@ -36,8 +36,49 @@ python3 -m http.server 8765
 | Доска зоны | http://localhost:8765/board.html?t=mock-admin&mock=1 |
 | Таблички на столы | http://localhost:8765/card.html?t=mock-admin&mock=1 |
 
-Без `?mock=1` страницы пойдут в реальный Supabase — пока он не настроен, увидите баннер
-«нет связи». Это тоже рабочий сценарий, проверяется в блоке Е.
+Демо-режим работает и на боевом адресе — удобно показывать с телефона, ничего не ломая:
+`https://aserzhantov.github.io/sdd-doctor/?mock=1`
+
+## Боевые адреса
+
+База подключена, поэтому страницы без `?mock=1` работают с настоящими данными.
+
+| Роль | Адрес |
+|---|---|
+| Участник | https://aserzhantov.github.io/sdd-doctor/ |
+| Админка | `https://aserzhantov.github.io/sdd-doctor/admin.html?t=<АДМИН_ТОКЕН>` |
+| Доска зоны | `https://aserzhantov.github.io/sdd-doctor/board.html?t=<АДМИН_ТОКЕН>` |
+| Таблички | `https://aserzhantov.github.io/sdd-doctor/card.html?t=<АДМИН_ТОКЕН>` |
+| Доктор | `https://aserzhantov.github.io/sdd-doctor/doctor.html?doc=<id>&t=<ТОКЕН_ДОКТОРА>` |
+
+### Почему токенов здесь нет
+
+**Репозиторий публичный.** Админский токен даёт право править карточки, удалять брони
+и видеть имена и команды всех записавшихся. Вписать его в файл спецификации — то же
+самое, что выложить пароль от админки в открытый доступ.
+
+Готовые ссылки с токенами лежат в `LINKS.local.md` в корне проекта — этот файл
+исключён из git и никуда не уезжает.
+
+### Как получить токены заново
+
+Ссылки докторов проще всего забирать в админке: вкладка «Доктора» → кнопка «Ссылка».
+
+Всё разом — запросом в SQL Editor Supabase:
+
+```sql
+select t.role, coalesce(d.name, 'Организатор') as who,
+       case t.role
+         when 'admin' then 'admin.html?t=' || t.token
+         else 'doctor.html?doc=' || t.doctor_id || '&t=' || t.token
+       end as link
+from public.access_tokens t
+left join public.doctors d on d.id = t.doctor_id
+order by t.role, d.sort;
+```
+
+Если админский токен утёк — удалить строку `role='admin'` из `access_tokens`
+и прогнать [`seed.sql`](../supabase/seed.sql) заново: он создаст новый.
 
 ---
 
