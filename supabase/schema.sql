@@ -8,7 +8,11 @@
 -- Публичные view отдают только занятость. Имена — только через RPC под токеном.
 -- =============================================================================
 
-create extension if not exists pgcrypto;
+-- В Supabase расширения живут в схеме extensions, а не в public.
+-- Поэтому во всех security definer функциях ниже search_path включает extensions,
+-- а вызовы gen_random_bytes квалифицированы явно: иначе внутри функции
+-- с search_path=public функция не находится и падает 42883.
+create extension if not exists pgcrypto with schema extensions;
 
 -- -----------------------------------------------------------------------------
 -- Таблицы
@@ -34,7 +38,7 @@ create table if not exists public.bookings (
   kind        text not null default 'participant',
   name        text,
   team        text,
-  cancel_code text not null default encode(gen_random_bytes(8), 'hex'),
+  cancel_code text not null default encode(extensions.gen_random_bytes(8), 'hex'),
   created_at  timestamptz not null default now(),
 
   constraint bookings_kind_chk  check (kind in ('participant', 'blocked')),
@@ -45,6 +49,11 @@ create table if not exists public.bookings (
   constraint bookings_event_day check (slot_start >= timestamptz '2026-09-14 00:00+03'
                                    and slot_start <  timestamptz '2026-09-15 00:00+03')
 );
+
+-- Приводим default в порядок и на уже существующей базе: выше отрабатывает
+-- только при первом создании таблицы.
+alter table public.bookings
+  alter column cancel_code set default encode(extensions.gen_random_bytes(8), 'hex');
 
 -- ГЛАВНАЯ защита целостности: физически исключает двойную запись на один слот,
 -- когда QR показали со сцены и сотня человек жмёт кнопку одновременно.
@@ -97,7 +106,7 @@ grant select on public.v_occupancy to anon, authenticated;
 -- -----------------------------------------------------------------------------
 
 create or replace function public.is_doctor_token(p_doctor_id text, p_token text)
-returns boolean language sql security definer stable set search_path = public as $$
+returns boolean language sql security definer stable set search_path = public, extensions as $$
   select exists (
     select 1 from public.access_tokens t
      where t.token = p_token and t.role = 'doctor' and t.doctor_id = p_doctor_id
@@ -105,7 +114,7 @@ returns boolean language sql security definer stable set search_path = public as
 $$;
 
 create or replace function public.is_admin_token(p_token text)
-returns boolean language sql security definer stable set search_path = public as $$
+returns boolean language sql security definer stable set search_path = public, extensions as $$
   select exists (
     select 1 from public.access_tokens t
      where t.token = p_token and t.role = 'admin'
@@ -126,7 +135,7 @@ create or replace function public.book_slot(
   p_name       text,
   p_team       text
 ) returns json
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
   d       public.doctors%rowtype;
   v_local time;
@@ -163,7 +172,7 @@ begin
 end $$;
 
 create or replace function public.cancel_booking(p_id uuid, p_code text)
-returns boolean language plpgsql security definer set search_path = public as $$
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
 declare n int;
 begin
   delete from public.bookings b
@@ -181,7 +190,7 @@ grant execute on function public.cancel_booking(uuid, text)               to ano
 
 create or replace function public.doctor_bookings(p_doctor_id text, p_token text)
 returns table (id uuid, slot_start timestamptz, kind text, name text, team text)
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not public.is_doctor_token(p_doctor_id, p_token) then
     raise exception 'FORBIDDEN' using errcode = 'P0001';
@@ -199,7 +208,7 @@ create or replace function public.doctor_block_slot(
   p_token      text,
   p_blocked    boolean
 ) returns boolean
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not public.is_doctor_token(p_doctor_id, p_token) then
     raise exception 'FORBIDDEN' using errcode = 'P0001';
@@ -229,7 +238,7 @@ returns table (
   table_no int, win_start time, win_end time, sort int, active boolean,
   token text
 )
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not public.is_admin_token(p_token) then
     raise exception 'FORBIDDEN' using errcode = 'P0001';
@@ -258,7 +267,7 @@ create or replace function public.admin_upsert_doctor(
   p_sort      int  default 100,
   p_active    boolean default true
 ) returns json
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare v_token text;
 begin
   if not public.is_admin_token(p_token) then
@@ -309,7 +318,7 @@ returns table (
   doctor_id text, doctor_name text, table_no int,
   name text, team text, created_at timestamptz
 )
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not public.is_admin_token(p_token) then
     raise exception 'FORBIDDEN' using errcode = 'P0001';
@@ -324,7 +333,7 @@ begin
 end $$;
 
 create or replace function public.admin_delete_booking(p_token text, p_id uuid)
-returns boolean language plpgsql security definer set search_path = public as $$
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
 declare n int;
 begin
   if not public.is_admin_token(p_token) then

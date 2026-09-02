@@ -12,8 +12,8 @@ const CONFIG = {
   // --- Supabase -------------------------------------------------------------
   // Project Settings -> API. anon key публичный по природе: доступ ограничен
   // на стороне БД через RLS и RPC, см. supabase/schema.sql
-  SUPABASE_URL:      'https://ЗАМЕНИТЬ.supabase.co',
-  SUPABASE_ANON_KEY: 'ЗАМЕНИТЬ',
+  SUPABASE_URL:      'https://gavaeftxabhaljdehmzj.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhdmFlZnR4YWJoYWxqZGVobXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNzE2MjgsImV4cCI6MjEwMzk0NzYyOH0.vBj0Bu4HaRRaM84dn907mzUrtKpNv1iPgSwX4NbzbKs',
 
   // --- Тайминг --------------------------------------------------------------
   DAY:          '2026-09-14',              // дата мероприятия, МСК

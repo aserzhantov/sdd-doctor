@@ -12,7 +12,7 @@
 -- -----------------------------------------------------------------------------
 -- Создаётся один раз. При повторном запуске остаётся прежним — ссылка не протухнет.
 insert into public.access_tokens (token, role, doctor_id, label)
-select encode(gen_random_bytes(12), 'hex'), 'admin', null, 'Организатор'
+select encode(extensions.gen_random_bytes(12), 'hex'), 'admin', null, 'Организатор'
  where not exists (select 1 from public.access_tokens where role = 'admin');
 
 -- -----------------------------------------------------------------------------
@@ -47,7 +47,7 @@ select encode(gen_random_bytes(12), 'hex'), 'admin', null, 'Организато
 -- Токены докторов — на случай, если доктора заводились SQL-ом выше
 -- -----------------------------------------------------------------------------
 insert into public.access_tokens (token, role, doctor_id, label)
-select encode(gen_random_bytes(12), 'hex'), 'doctor', d.id, d.name
+select encode(extensions.gen_random_bytes(12), 'hex'), 'doctor', d.id, d.name
   from public.doctors d
  where not exists (
    select 1 from public.access_tokens t where t.doctor_id = d.id and t.role = 'doctor'

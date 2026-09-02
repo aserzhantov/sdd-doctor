@@ -17,6 +17,19 @@
 
 ---
 
+## Грабли Supabase: схема `extensions`
+
+В Supabase расширения ставятся **не в `public`, а в схему `extensions`**. Поэтому:
+
+- у всех `security definer` функций `search_path = public, extensions`;
+- вызовы `gen_random_bytes` квалифицированы явно.
+
+Без этого функция падает с `42883 function gen_random_bytes(integer) does not exist`,
+причём **только внутри функций**: тело plpgsql разбирается в момент выполнения,
+с её собственным `search_path`. Прямой SQL в редакторе при этом работает,
+поэтому ошибка не видна ни локально, ни при прогоне `seed.sql` — она вылезает
+только на первом реальном вызове RPC.
+
 ## Таблицы
 
 ### `doctors`
