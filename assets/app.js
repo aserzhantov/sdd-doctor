@@ -234,17 +234,32 @@ const App = (() => {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  function renderHeader(el, subtitle) {
+  /** Шапка = окно терминала, как на рестайленной адженде: три точки и путь
+   *  к файлу. Кто видел слайд со сцены, узнаёт страницу до заголовка.
+   *  См. specs/30-design-system.md, раздел «Окно терминала».
+   *
+   *  file — путь в шапке окна, у каждой страницы свой.
+   *  Внутрь окна кладётся пустой #heroExtra: страница дописывает туда
+   *  свой вводный блок (лид, карточка endpoint, правила), если он есть. */
+  function renderHeader(el, subtitle, file) {
     el.innerHTML = `
       <div class="top-inner">
-        <div class="brand">
+        <div class="topbar">
           <img src="assets/logo.png" alt="" onerror="this.style.display='none'">
-          <div>
-            <div class="ev">${esc(CONFIG.EVENT)}</div>
-            <div class="meta">${esc(fmtDate(mskDate(CONFIG.DAY, '12:00')))} · ${esc(CONFIG.PLACE)}</div>
-          </div>
+          <span class="ev">${esc(CONFIG.EVENT)}</span>
+          <span class="dt">${esc(fmtDate(mskDate(CONFIG.DAY, '12:00')))}, ${esc(CONFIG.PLACE)}</span>
         </div>
-        <h1>${esc(subtitle || CONFIG.TITLE)}</h1>
+        <section class="win">
+          <div class="win-bar">
+            <span class="dot o"></span><span class="dot y"></span><span class="dot c"></span>
+            <span class="win-path">${esc(file || 'sdd-day/specs/doctor.md')}</span>
+          </div>
+          <div class="win-body">
+            <img class="uni" src="assets/unicorn.png" alt="" onerror="this.remove()">
+            <h1>${esc(subtitle || CONFIG.TITLE)}<span class="cur">_</span></h1>
+            <div id="heroExtra"></div>
+          </div>
+        </section>
       </div>`;
   }
 

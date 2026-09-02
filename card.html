@@ -15,29 +15,36 @@
  * сайт тёмный, а печать должна быть СВЕТЛОЙ. Тёмный лист выжигает картридж,
  * а QR белым по чёрному читается не всеми сканерами телефонов.
  *
+ * Это НЕ отступление от айдентики: у Бюро есть светлая «бумажная» полярность —
+ * чёрные силуэты и моноширинный текст на почти-белом листе. Для печати она
+ * подходит лучше тёмной, и заодно снимает вечную возню с «Фоновой графикой».
+ *
  * Все размеры в мм и подобраны под A4. При смене формата масштабировать надо
  * ВСЁ вместе с листом, иначе на большом листе останется мелкая вёрстка.
  * ------------------------------------------------------------------------- */
 
 .sheet {
   width: 297mm; height: 210mm;
-  background: #fff; color: #0B1220;
+  background: #fff; color: #0D0D0D;
   padding: 17mm 20mm;
   display: flex; flex-direction: column;
-  font-family: var(--font);
+  font-family: var(--mono);
   margin: 0 auto 10mm;
   box-shadow: 0 6px 28px rgba(0,0,0,.5);   /* только на экране, при печати не виден */
   position: relative; overflow: hidden;
 }
-.sheet::before {                            /* фирменная полоса сверху */
+/* Фирменная полоса сверху — три акцента жёсткими стыками, без растяжки.
+   Те же три цвета и в том же порядке, что точки в шапке окна на сайте. */
+.sheet::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8mm;
-  background: linear-gradient(90deg, #22D3EE, #2E7BF6 55%, #8B5CF6);
+  background: linear-gradient(90deg,
+    #F84D15 0 33.34%, #FED000 33.34% 66.67%, #47BAD5 66.67% 100%);
 }
 
 .sheet .head { display: flex; align-items: center; gap: 5mm; margin-top: 2mm; }
 .sheet .head img { width: 17mm; height: 17mm; border-radius: 50%; }
-.sheet .head .ev { font-weight: 800; font-size: 7mm; letter-spacing: .2px; }
-.sheet .head .sub { font-size: 4.6mm; color: #5A6880; }
+.sheet .head .ev { font-weight: 700; font-size: 6.6mm; letter-spacing: .3mm; }
+.sheet .head .sub { font-size: 4.4mm; color: #6E6E68; margin-top: 1mm; }
 
 /* Три зоны вместо двух: СТОЛ | КТО ЭТО И ЧЕМ ПОМОЖЕТ | КАК ЗАПИСАТЬСЯ.
    В двухколоночном варианте центр листа пустовал: имя и чип не заполняли
@@ -52,25 +59,21 @@
 /* --- Зона 1: номер стола --- */
 .sheet .tcol {
   width: 62mm; flex: none;
-  border: .6mm solid #DBEAFE; border-radius: 6mm; background: #F5F9FF;
+  border: .6mm solid #D5D4D0; border-radius: 6mm; background: #EAE9E7;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.sheet .tno-label { font-size: 5.4mm; font-weight: 800; letter-spacing: 2mm;
-                    color: #5A6880; text-transform: uppercase; }
-/* Номер — сплошным цветом, а не градиентным текстом.
+.sheet .tno-label { font-size: 5mm; font-weight: 700; letter-spacing: 2mm;
+                    color: #6E6E68; text-transform: uppercase; }
+/* Номер — сплошным чёрным, а не градиентным текстом.
    background-clip:text печатается только при включённой «Фоновой графике»,
-   иначе главный элемент таблички исчез бы с листа целиком. */
+   иначе главный элемент таблички исчез бы с листа целиком.
+   Чёрный по светлой плашке — самое читаемое издалека, что бывает,
+   и ровно то, как набраны крупные акценты в референсе. */
 /* letter-spacing здесь НЕ трогать: отрицательный трекинг ужимает и последний
    символ тоже, из-за чего у цифр с выносом вправо (3, 5) подрезался правый бок.
    Номера однозначные, экономить ширину не на чем. */
-.sheet .tno { font-size: 74mm; font-weight: 900; line-height: 1;
-              letter-spacing: normal; color: #2E7BF6; }
-@media screen {
-  .sheet .tno {
-    background: linear-gradient(135deg, #22D3EE, #2E7BF6 55%, #8B5CF6);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-}
+.sheet .tno { font-size: 74mm; font-weight: 700; line-height: 1;
+              letter-spacing: normal; color: #0D0D0D; }
 
 /* --- Зона 2: доктор --- */
 /* Блок доктора прижат к верхней границе плашки с номером — так фото, имя
@@ -81,40 +84,44 @@
 /* flex-start, а не center: при имени в две строки текстовый блок становится выше
    фото, и по центру фото съезжало вниз, ломая выравнивание с плашкой номера. */
 .sheet .who { display: flex; align-items: flex-start; gap: 6mm; }
-.sheet .who .ava { width: 24mm; height: 24mm; border-radius: 4mm; overflow: hidden; flex: none; }
+.sheet .who .ava { width: 24mm; height: 24mm; border-radius: 3mm; overflow: hidden; flex: none; }
 .sheet .who .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.sheet .who .ava.ph { background: linear-gradient(135deg, #22D3EE, #8B5CF6);
-                      display: grid; place-items: center; color: #fff; font-size: 9mm; font-weight: 800; }
+.sheet .who .ava.ph { background: #0D0D0D;
+                      display: grid; place-items: center; color: #EAE9E7; font-size: 9mm; font-weight: 700; }
 
 /* Длинные ФИО и должности встречаются, поэтому все тексты ограничены
    по числу строк — макет не должен зависеть от того, что напишут в админке. */
 .sheet .clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-.sheet .name { font-size: 9.4mm; font-weight: 800; line-height: 1.08; -webkit-line-clamp: 2; }
-.sheet .role { font-size: 4.6mm; color: #5A6880; margin-top: 1.5mm; line-height: 1.25; -webkit-line-clamp: 2; }
+.sheet .name { font-size: 9mm; font-weight: 700; line-height: 1.1; -webkit-line-clamp: 2; letter-spacing: -.2mm; }
+.sheet .role { font-size: 4.4mm; color: #6E6E68; margin-top: 1.5mm; line-height: 1.25; -webkit-line-clamp: 2; }
 /* Обрезка живёт во внутреннем .spec-t, а не на самом чипе: при clamp прямо
    на padding-элементе из-под второй строки выглядывал обрезок третьей.
    inline-block — чтобы чип обжимал текст, а не растягивался полосой во всю колонку. */
-.sheet .spec { display: inline-block; margin-top: 5mm; padding: 2mm 5mm; max-width: 100%;
-               font-size: 4.8mm; font-weight: 600; color: #1D4ED8; line-height: 1.3;
-               border: .5mm solid #BFDBFE; background: #EFF6FF; border-radius: 8mm; }
+/* Жёлтая заливка — стикер из айдентики Бюро. Если в настройках печати забудут
+   «Фоновую графику», останется чёрный текст в рамке: деградирует читаемо. */
+.sheet .spec { display: inline-block; margin-top: 5mm; padding: 2mm 4mm; max-width: 100%;
+               font-size: 4.6mm; font-weight: 700; color: #0D0D0D; line-height: 1.3;
+               border: .5mm solid #0D0D0D; background: #FED000; border-radius: 2mm; }
 .sheet .spec-t { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
                  -webkit-line-clamp: 2; }
-.sheet .bio-title { margin-top: 6mm; font-size: 3.8mm; font-weight: 800; letter-spacing: 1mm;
-                    color: #94A3B8; text-transform: uppercase; }
-.sheet .bio { margin-top: 2mm; font-size: 4.6mm; line-height: 1.4; color: #334155;
-              -webkit-line-clamp: 5; }
+.sheet .bio-title { margin-top: 6mm; font-size: 3.6mm; font-weight: 700; letter-spacing: 1mm;
+                    color: #8A8A85; text-transform: uppercase; }
+/* Опыт — единственный абзац прозы на листе, поэтому наборным шрифтом:
+   пять строк моноширинного читаются заметно медленнее. */
+.sheet .bio { margin-top: 2mm; font-family: var(--font); font-size: 4.6mm; line-height: 1.4;
+              color: #353533; -webkit-line-clamp: 5; }
 
 /* --- Зона 3: запись --- */
 .sheet .right { width: 68mm; flex: none; display: flex; flex-direction: column;
                 align-items: center; justify-content: center; }
 .sheet .right img.qr { width: 66mm; height: 66mm; display: block; }
-.sheet .qr-cap { font-size: 4.4mm; color: #5A6880; margin-top: 3mm; line-height: 1.3; text-align: center; }
+.sheet .qr-cap { font-size: 4.2mm; color: #6E6E68; margin-top: 3mm; line-height: 1.35; text-align: center; }
 
 .sheet .foot { display: flex; align-items: center; justify-content: space-between;
-               border-top: .5mm solid #E2E8F0; padding-top: 4mm; font-size: 4.8mm; color: #5A6880; }
-.sheet .rule-strong { font-size: 6.2mm; font-weight: 800; color: #0B1220; }
+               border-top: .5mm solid #D5D4D0; padding-top: 4mm; font-size: 4.4mm; color: #6E6E68; }
+.sheet .rule-strong { font-size: 6mm; font-weight: 700; color: #0D0D0D; }
 
-.warn { color: #B91C1C; font-size: 5mm; font-weight: 700; }
+.warn { color: #F84D15; font-size: 5mm; font-weight: 700; }
 
 /* Лист шире, чем контейнер сайта, — иначе превью обрезалось бы по краям. */
 .wrap { max-width: none; }
@@ -132,7 +139,7 @@
 }
 </style>
 </head>
-<body>
+<body class="tool">
 
 <header class="top no-print" id="hdr"></header>
 
@@ -250,7 +257,7 @@ function sheet(d) {
     </div>`;
 }
 
-App.renderHeader($('hdr'), 'Таблички на столы');
+App.renderHeader($('hdr'), 'Таблички на столы', 'sdd-day/print/table-cards');
 load();
 </script>
 </body>

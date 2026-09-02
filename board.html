@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#070C16">
+<meta name="theme-color" content="#0D0D0D">
 <meta name="robots" content="noindex">
 <title>Доска практической зоны — SDD Day</title>
 <link rel="icon" href="assets/logo.png">
@@ -99,7 +99,7 @@ function tickClock() {
   if (DOCS.length) render();
 }
 
-App.renderHeader($('hdr'), 'Практическая зона');
+App.renderHeader($('hdr'), 'Практическая зона', 'sdd-day/zone/board');
 tickClock();
 load();
 setInterval(() => { if (!document.hidden) load(); }, 30000);

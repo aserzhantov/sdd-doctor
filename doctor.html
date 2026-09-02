@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#070C16">
+<meta name="theme-color" content="#0D0D0D">
 <meta name="robots" content="noindex">
 <title>Кабинет SDD-доктора</title>
 <link rel="icon" href="assets/logo.png">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
-<body>
+<body class="tool">
 
 <header class="top" id="hdr"></header>
 
@@ -170,7 +170,7 @@ async function setBlock(key, blocked) {
 
 function tickClock() { $('clock').textContent = 'Время по Москве · ' + App.fmtTime(new Date()); }
 
-App.renderHeader($('hdr'), 'Кабинет доктора');
+App.renderHeader($('hdr'), 'Кабинет доктора', 'sdd-day/doctors/schedule.md');
 tickClock();
 setInterval(tickClock, 30000);
 load();

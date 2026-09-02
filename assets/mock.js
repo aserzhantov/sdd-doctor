@@ -36,7 +36,7 @@
       { id:'demo-4', name:'Доктор Четвёртый', role:'Демо-данные · должность и команда',
         specialty:'Демо · с чем помогает', table_no:4, sort:40, active:true,
         win_start:null, win_end:null, token:'mock-4',
-        bio:'Демо-описание для проверки вёрстки. Этот доктор свободен целиком — видно зелёный бейдж на всю сетку.' },
+        bio:'Демо-описание для проверки вёрстки. Этот доктор свободен целиком — видно циановый бейдж на всю сетку.' },
     ],
     bookings: [
       { id:'m1', doctor_id:'demo-1', slot_start:t('12','00'), kind:'participant',
@@ -174,13 +174,16 @@
 
   addEventListener('DOMContentLoaded', () => {
     const bar = document.createElement('div');
+    // Оранжевый — цвет тревоги в этой палитре. Плашку нельзя спутать с боевым
+    // экраном, а других оранжевых плашек в интерфейсе нет.
     bar.style.cssText =
       'position:fixed;left:0;right:0;bottom:0;z-index:80;padding:7px 12px;' +
-      'background:#8B5CF6;color:#fff;font:600 12px/1.3 system-ui;' +
+      'background:#F84D15;color:#0D0D0D;letter-spacing:.5px;' +
+      'font:700 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;' +
       'display:flex;gap:12px;align-items:center;justify-content:center';
     bar.innerHTML = `<span>ДЕМО-РЕЖИМ · данные в браузере, Supabase не используется</span>
-      <button id="mockReset" style="font:inherit;padding:3px 9px;border-radius:6px;
-        border:1px solid rgba(255,255,255,.6);background:transparent;color:#fff;cursor:pointer">
+      <button id="mockReset" style="font:inherit;padding:3px 9px;border-radius:4px;
+        border:1px solid rgba(0,0,0,.35);background:transparent;color:#0D0D0D;cursor:pointer">
         Сбросить</button>`;
     document.body.appendChild(bar);
     document.body.style.paddingBottom = '40px';

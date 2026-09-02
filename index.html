@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#070C16">
+<meta name="theme-color" content="#0D0D0D">
 <title>Визит к SDD-доктору — SDD Day</title>
 <meta name="description" content="Запись на приём к SDD-доктору в практической зоне SDD Day, 14 сентября, БКЗ.">
 <link rel="icon" href="assets/logo.png">
@@ -16,10 +16,8 @@
 <div class="wrap">
   <div class="banner hidden" id="banner"></div>
 
-  <p class="lead" id="lead"></p>
-
-  <div class="rules" id="rules"></div>
-  <p class="note-line" id="note"></p>
+  <!-- Лид, карточка endpoint и правила живут ВНУТРИ окна терминала:
+       их вставляет renderStatic() в #heroExtra, который рисует App.renderHeader. -->
 
   <div id="mine"></div>
 
@@ -95,14 +93,32 @@ function setOnline(v) {
 /* --- Общие блоки --------------------------------------------------------- */
 
 function renderStatic() {
-  App.renderHeader($('hdr'));
-  $('lead').textContent = CONFIG.LEAD;
-  // Короткие чипы: на 360–390px длинный текст в пилюле разъезжается в две строки.
-  $('rules').innerHTML = `
-    <span class="rule"><b>Только по записи</b></span>
-    <span class="rule">Приём <b>${CONFIG.SLOT_MINUTES} мин</b></span>
-    <span class="rule">Слот держим <b>${CONFIG.HOLD_MINUTES} мин</b></span>`;
-  $('note').textContent = 'Без записи доктор не принимает — выберите время заранее.';
+  App.renderHeader($('hdr'), null, 'sdd-day/specs/doctor.md');
+
+  // Жёлтая карточка — дословный перенос плашки про практическую зону
+  // с рестайленной адженды: те же ключи в том же порядке. Человек сканирует
+  // QR, глядя на неё со сцены, и попадает на неё же, только крупнее.
+  // Значения тянутся из CONFIG, чтобы при смене тайминга не разъехались.
+  $('heroExtra').innerHTML = `
+    <p class="lead">${App.esc(CONFIG.LEAD)}</p>
+
+    <div class="endpoint">
+      <div class="kv">
+        <span class="k">service:</span><span class="v">практическая зона</span>
+        <span class="k">runs:</span><span class="v">continuous</span>
+        <span class="k">window:</span><span class="v">${App.esc(CONFIG.WINDOW.start)}–${App.esc(CONFIG.WINDOW.end)}</span>
+        <span class="k">endpoint:</span><span class="v">${App.esc(CONFIG.TITLE)}</span>
+      </div>
+      <div class="cmt">// работает всё время, приём только по записи</div>
+    </div>
+
+    <!-- Короткие чипы: на 360–390px длинный текст в плашке разъезжается. -->
+    <div class="rules">
+      <span class="rule"><b>Только по записи</b></span>
+      <span class="rule">Приём <b>${App.esc(CONFIG.SLOT_MINUTES)} мин</b></span>
+      <span class="rule">Слот держим <b>${App.esc(CONFIG.HOLD_MINUTES)} мин</b></span>
+    </div>
+    <p class="note-line">без записи доктор не принимает — выберите время заранее</p>`;
 }
 
 function renderMine() {
@@ -122,7 +138,7 @@ function renderMine() {
         ${App.esc(App.fmtTime(start))}–${App.esc(App.fmtTime(App.addMinutes(start, CONFIG.SLOT_MINUTES)))}
         ${doc && doc.table_no ? ' · стол №' + App.esc(doc.table_no) : ''}
       </div>
-      ${doc ? '' : `<div class="when" style="color:var(--busy)">
+      ${doc ? '' : `<div class="when" style="color:var(--orange)">
         Уточните у организаторов — запись лучше отменить.
       </div>`}
       <div class="btn-row">
@@ -141,10 +157,14 @@ function renderList() {
   const host = $('docs');
 
   if (!DOCTORS.length) {
-    host.innerHTML = `<div class="notice">
-      ${online
-        ? 'Запись пока закрыта. Доктора появятся ближе к началу мероприятия.'
-        : 'Список докторов недоступен. Подойдите к столам в практической зоне.'}
+    // Единорог здесь несёт смысл, а не фактуру: пустой экран без картинки
+    // читается как поломка. См. specs/30-design-system.md, «Где единорог».
+    host.innerHTML = `<div class="empty">
+      <img src="assets/unicorn.png" alt="" onerror="this.remove()">
+      <div class="t">${online ? 'Запись пока закрыта' : 'Список докторов недоступен'}</div>
+      <div class="s">${online
+        ? 'доктора появятся ближе к началу мероприятия'
+        : 'подойдите к столам в практической зоне'}</div>
     </div>`;
     return;
   }
@@ -233,12 +253,12 @@ function renderSlots(id) {
       ${App.avatarHTML(d)}
       <div>
         <div class="name" style="font-size:19px;font-weight:700">${App.esc(d.name)}</div>
-        ${d.role ? `<div class="role" style="font-size:13px;color:var(--muted)">${App.esc(d.role)}</div>` : ''}
+        ${d.role ? `<div class="role" style="font-size:12.5px">${App.esc(d.role)}</div>` : ''}
         ${d.table_no ? `<div class="table-no" style="margin-top:4px">Стол <b>№${App.esc(d.table_no)}</b></div>` : ''}
       </div>
     </div>
     ${d.specialty ? `<div style="margin-top:10px"><span class="spec">${App.esc(d.specialty)}</span></div>` : ''}
-    ${d.bio ? `<p style="color:var(--muted);font-size:14px">${App.esc(d.bio)}</p>` : ''}
+    ${d.bio ? `<p class="prose" style="color:var(--muted);font-size:14px">${App.esc(d.bio)}</p>` : ''}
 
     <div class="section-title">Свободное время</div>
     ${mine ? `<div class="notice" style="margin-bottom:12px">
@@ -351,7 +371,7 @@ function showDone(doctor, slot) {
         ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}
         ${doctor.table_no ? ' · стол №' + App.esc(doctor.table_no) : ''}
       </div>
-      <p style="color:var(--muted);font-size:13.5px;max-width:44ch;margin:14px auto 0">
+      <p class="prose" style="color:var(--muted);font-size:13.5px;max-width:44ch;margin:14px auto 0">
         Подойдите к столу вовремя: доктор ждёт ${CONFIG.HOLD_MINUTES} минут,
         дальше слот освобождается для других.
       </p>
