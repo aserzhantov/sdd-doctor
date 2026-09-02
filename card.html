@@ -42,7 +42,13 @@
 }
 
 .sheet .head { display: flex; align-items: center; gap: 5mm; margin-top: 2mm; }
-.sheet .head img { width: 17mm; height: 17mm; border-radius: 50%; }
+/* Знак — единорог сплошным чёрным, а не логотип SDD Day: тот тёмный круг
+   с градиентом cyan→violet, источник СТАРОЙ палитры, и на белом листе он
+   сидит кляксой. В рестайленной адженде его тоже нет.
+   Заливка сплошная, не водяной знак: бледная заливка на офисном лазернике
+   рассыпается в точки или пропадает совсем. Силуэт широкий, поэтому
+   задаётся высота, а ширина считается сама. */
+.sheet .head img { height: 15mm; width: auto; }
 .sheet .head .ev { font-weight: 700; font-size: 6.6mm; letter-spacing: .3mm; }
 .sheet .head .sub { font-size: 4.4mm; color: #6E6E68; margin-top: 1mm; }
 
@@ -215,7 +221,7 @@ function sheet(d) {
   return `
     <div class="sheet">
       <div class="head">
-        <img src="assets/logo.png" alt="" onerror="this.style.display='none'">
+        <img src="assets/unicorn-ink.png" alt="" onerror="this.style.display='none'">
         <div>
           <div class="ev">${App.esc(CONFIG.EVENT)} · Визит к SDD-доктору</div>
           <div class="sub">${App.esc(App.fmtDate(App.mskDate(CONFIG.DAY, '12:00')))} · ${App.esc(CONFIG.PLACE)} · практическая зона</div>

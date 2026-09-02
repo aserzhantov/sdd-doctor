@@ -244,8 +244,12 @@ const App = (() => {
   function renderHeader(el, subtitle, file) {
     el.innerHTML = `
       <div class="top-inner">
+        <!-- Логотипа здесь нет намеренно: sddday_logo.png — тёмный круг
+             с градиентом cyan→violet, источник старой палитры. В рестайленной
+             адженде его тоже нет. Единорога вместо него не поставить: на 22px
+             широкий силуэт с рогом превращается в кашу. На этой странице он
+             и так есть — водяным знаком в окне. -->
         <div class="topbar">
-          <img src="assets/logo.png" alt="" onerror="this.style.display='none'">
           <span class="ev">${esc(CONFIG.EVENT)}</span>
           <span class="dt">${esc(fmtDate(mskDate(CONFIG.DAY, '12:00')))}, ${esc(CONFIG.PLACE)}</span>
         </div>
