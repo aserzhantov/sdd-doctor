@@ -37,7 +37,7 @@ python3 -m http.server 8765
 | Таблички на столы | http://localhost:8765/card.html?t=mock-admin&mock=1 |
 
 Демо-режим работает и на боевом адресе — удобно показывать с телефона, ничего не ломая:
-`https://aserzhantov.github.io/sdd-doctor/?mock=1`
+`https://sdd-doctor.github.io/?mock=1`
 
 ## Боевые адреса
 
@@ -45,11 +45,11 @@ python3 -m http.server 8765
 
 | Роль | Адрес |
 |---|---|
-| Участник | https://aserzhantov.github.io/sdd-doctor/ |
-| Админка | `https://aserzhantov.github.io/sdd-doctor/admin.html?t=<АДМИН_ТОКЕН>` |
-| Доска зоны | `https://aserzhantov.github.io/sdd-doctor/board.html?t=<АДМИН_ТОКЕН>` |
-| Таблички | `https://aserzhantov.github.io/sdd-doctor/card.html?t=<АДМИН_ТОКЕН>` |
-| Доктор | `https://aserzhantov.github.io/sdd-doctor/doctor.html?doc=<id>&t=<ТОКЕН_ДОКТОРА>` |
+| Участник | https://sdd-doctor.github.io/ |
+| Админка | `https://sdd-doctor.github.io/admin.html?t=<АДМИН_ТОКЕН>` |
+| Доска зоны | `https://sdd-doctor.github.io/board.html?t=<АДМИН_ТОКЕН>` |
+| Таблички | `https://sdd-doctor.github.io/card.html?t=<АДМИН_ТОКЕН>` |
+| Доктор | `https://sdd-doctor.github.io/doctor.html?doc=<id>&t=<ТОКЕН_ДОКТОРА>` |
 
 ### Почему токенов здесь нет
 

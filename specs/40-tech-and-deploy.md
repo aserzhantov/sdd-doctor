@@ -56,11 +56,20 @@ git add -A && git commit -m "…" && git push
 GitHub Pages раскатывает сам за 30–60 секунд. **Сборки нет.**
 
 Первичная настройка репозитория:
-1. `gh repo create sdd-doctor --public --source=. --push`
-2. Settings → Pages → Source: `Deploy from a branch`, ветка `main`, папка `/ (root)`
+1. `gh repo create sdd-doctor/sdd-doctor.github.io --public`, затем запушить `main`
+2. Pages включаются сами: у репозитория с именем `<организация>.github.io` источником
+   сразу становится ветка `main`, папка `/ (root)`, HTTPS принудительный
 3. Файл `.nojekyll` в корне обязателен — иначе Jekyll может съесть служебные пути.
 
-Адрес: `https://aserzhantov.github.io/sdd-doctor/`
+Адрес: `https://sdd-doctor.github.io/`
+
+Сайт живёт в организации `sdd-doctor`, а не в личном аккаунте: имя организации целиком
+становится адресом. Ради этого домен и переехал — `https://aserzhantov.github.io/sdd-doctor/`
+на слайде и на печатной табличке читался как технический путь.
+
+Своего домена (`sdd-doctor.ru`) сознательно нет: зона `.ru` продаётся минимум на год
+и требует паспортных данных, а сертификат на кастомный домен GitHub выпускает
+до суток. `*.github.io` покрыт wildcard-сертификатом и работает сразу.
 
 ---
 
@@ -93,7 +102,7 @@ GitHub Pages раскатывает сам за 30–60 секунд. **Сбор
 Почему не сделали отдельный QR на каждый стол — см. [10-flows.md](10-flows.md), раздел «QR: почему он один».
 
 ```bash
-qrencode -o qr/main.png -s 20 -m 4 -l M "https://aserzhantov.github.io/sdd-doctor/"
+qrencode -o qr/main.png -s 20 -m 4 -l M "https://sdd-doctor.github.io/"
 zbarimg -q --raw qr/main.png      # проверка, что код читается обратно
 ```
 
