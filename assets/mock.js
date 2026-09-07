@@ -39,19 +39,19 @@
         bio:'Демо-описание для проверки вёрстки. Этот доктор свободен целиком — видно циановый бейдж на всю сетку.' },
     ],
     bookings: [
-      { id:'m1', doctor_id:'demo-1', slot_start:t('12','00'), kind:'participant',
+      { id:'m1', doctor_id:'demo-1', slot_start:t('14','30'), kind:'participant',
         name:'Участник Первый', team:'Демо-команда А', cancel_code:'x1' },
-      { id:'m2', doctor_id:'demo-1', slot_start:t('12','30'), kind:'participant',
+      { id:'m2', doctor_id:'demo-1', slot_start:t('14','50'), kind:'participant',
         name:'Участник Второй', team:'Демо-команда Б', cancel_code:'x2' },
-      { id:'m3', doctor_id:'demo-1', slot_start:t('13','00'), kind:'blocked',
+      { id:'m3', doctor_id:'demo-1', slot_start:t('15','10'), kind:'blocked',
         name:null, team:null, cancel_code:'x3' },
-      // у третьего занято почти всё — проверка бейджа «Остался 1 слот»
-      ...['12','13','14'].flatMap((h, i) => [
-        { id:'m4' + i, doctor_id:'demo-3', slot_start:t(h,'00'), kind:'participant',
-          name:'Участник ' + (i + 3), team:'Демо-команда В', cancel_code:'x4' + i },
-        { id:'m5' + i, doctor_id:'demo-3', slot_start:t(h,'30'), kind:'participant',
-          name:'Участник ' + (i + 6), team:'Демо-команда Г', cancel_code:'x5' + i },
-      ]).slice(0, 5),
+      // у третьего занято 8 из 9 — проверка жёлтого бейджа «Остался 1 слот».
+      // Слоты перечислены явно: сетка 20-минутная, по круглым часам не строится.
+      ...[['14','30'], ['14','50'], ['15','10'], ['15','30'],
+          ['15','50'], ['16','10'], ['16','30'], ['16','50']].map(([h, m], i) => (
+        { id:'m4' + i, doctor_id:'demo-3', slot_start:t(h, m), kind:'participant',
+          name:'Участник ' + (i + 3), team:'Демо-команда В', cancel_code:'x4' + i }
+      )),
     ],
   };
 

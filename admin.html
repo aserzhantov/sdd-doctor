@@ -163,8 +163,8 @@ function openForm(d) {
       <div class="field">
         <label for="iWs">Личное окно приёма (пусто = ${CONFIG.WINDOW.start}–${CONFIG.WINDOW.end})</label>
         <div style="display:flex;gap:8px">
-          <input id="iWs" placeholder="12:00" value="${d && d.win_start ? App.esc(d.win_start.slice(0,5)) : ''}">
-          <input id="iWe" placeholder="15:00" value="${d && d.win_end ? App.esc(d.win_end.slice(0,5)) : ''}">
+          <input id="iWs" placeholder="${CONFIG.WINDOW.start}" value="${d && d.win_start ? App.esc(d.win_start.slice(0,5)) : ''}">
+          <input id="iWe" placeholder="${CONFIG.WINDOW.end}" value="${d && d.win_end ? App.esc(d.win_end.slice(0,5)) : ''}">
         </div>
       </div>
       <div class="field">
