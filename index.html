@@ -93,7 +93,8 @@ function setOnline(v) {
 /* --- Общие блоки --------------------------------------------------------- */
 
 function renderStatic() {
-  App.renderHeader($('hdr'), null, 'sdd-day/specs/doctor.md');
+  // Единорога в шапке нет: на этой странице он лежит в жёлтой плашке ниже.
+  App.renderHeader($('hdr'), null, 'sdd-day/specs/doctor.md', { watermark: false });
 
   // Жёлтая карточка — дословный перенос плашки про практическую зону
   // с рестайленной адженды: те же ключи в том же порядке. Человек сканирует
@@ -110,6 +111,7 @@ function renderStatic() {
         <span class="k">endpoint:</span><span class="v">${App.esc(CONFIG.TITLE)}</span>
       </div>
       <div class="cmt">// работает всё время, приём только по записи</div>
+      <img class="uni-g" src="assets/unicorn-glasses.png" alt="" onerror="this.remove()">
     </div>
 
     <!-- Короткие чипы: на 360–390px длинный текст в плашке разъезжается. -->

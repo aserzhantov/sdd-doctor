@@ -235,7 +235,10 @@ const App = (() => {
    *  file — путь в шапке окна, у каждой страницы свой.
    *  Внутрь окна кладётся пустой #heroExtra: страница дописывает туда
    *  свой вводный блок (лид, карточка endpoint, правила), если он есть. */
-  function renderHeader(el, subtitle, file) {
+  /** watermark:false — не рисовать единорога водяным знаком в шапке.
+   *  Так делает витрина участника: там единорог живёт в жёлтой плашке,
+   *  как на слайде адженды, и второй в шапке был бы повтором. */
+  function renderHeader(el, subtitle, file, { watermark = true } = {}) {
     el.innerHTML = `
       <div class="top-inner">
         <!-- Логотипа здесь нет намеренно: sddday_logo.png — тёмный круг
@@ -253,7 +256,7 @@ const App = (() => {
             <span class="win-path">${esc(file || 'sdd-day/specs/doctor.md')}</span>
           </div>
           <div class="win-body">
-            <img class="uni" src="assets/unicorn.png" alt="" onerror="this.remove()">
+            ${watermark ? '<img class="uni" src="assets/unicorn.png" alt="" onerror="this.remove()">' : ''}
             <h1>${esc(subtitle || CONFIG.TITLE)}<span class="cur">_</span></h1>
             <div id="heroExtra"></div>
           </div>

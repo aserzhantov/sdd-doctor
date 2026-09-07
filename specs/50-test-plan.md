@@ -8,11 +8,17 @@
 
 ```bash
 cd "/Users/Anton_1/ClaudeProjects/SDDDoctor Lending"
-python3 -m http.server 8765
+python3 serve.py
 ```
 
-Открыть в браузере. **Сборки нет**, правки в файлах видны по F5.
+Открыть `http://localhost:8766/`. **Сборки нет**, правки в файлах видны по F5.
 Остановить: `Ctrl+C` в терминале.
+
+**Пользоваться именно `serve.py`, а не `python3 -m http.server`.** Встроенный
+сервер не шлёт `Cache-Control`, и браузер продолжает крутить старые `app.js`
+и `styles.css`: правишь файл, обновляешь страницу — и видишь прежнее поведение,
+без единой ошибки в консоли. `serve.py` отдаёт всё с `no-store`, и такой иллюзии
+не возникает. На боевом адресе кеш живёт своей жизнью — там `Cmd+Shift+R`.
 
 ## Демо-режим
 
@@ -29,12 +35,12 @@ python3 -m http.server 8765
 
 | Роль | Ссылка |
 |---|---|
-| Участник | http://localhost:8765/index.html?mock=1 |
-| Доктор Спека | http://localhost:8765/doctor.html?doc=demo-1&t=mock-1&mock=1 |
-| Доктор Пайплайн | http://localhost:8765/doctor.html?doc=demo-3&t=mock-3&mock=1 |
-| Админка | http://localhost:8765/admin.html?t=mock-admin&mock=1 |
-| Доска зоны | http://localhost:8765/board.html?t=mock-admin&mock=1 |
-| Таблички на столы | http://localhost:8765/card.html?t=mock-admin&mock=1 |
+| Участник | http://localhost:8766/index.html?mock=1 |
+| Доктор Спека | http://localhost:8766/doctor.html?doc=demo-1&t=mock-1&mock=1 |
+| Доктор Пайплайн | http://localhost:8766/doctor.html?doc=demo-3&t=mock-3&mock=1 |
+| Админка | http://localhost:8766/admin.html?t=mock-admin&mock=1 |
+| Доска зоны | http://localhost:8766/board.html?t=mock-admin&mock=1 |
+| Таблички на столы | http://localhost:8766/card.html?t=mock-admin&mock=1 |
 
 Демо-режим работает и на боевом адресе — удобно показывать с телефона, ничего не ломая:
 `https://sdd-doctor.github.io/?mock=1`
@@ -202,9 +208,10 @@ order by t.role, d.sort;
 - [ ] длинные роль и вопрос участника не ломают строку расписания
 - [ ] на доске колонка не выдавливает соседние
 
-**Важно про кеш браузера.** Правки в `assets/styles.css` могут не примениться
-по обычному F5. Проверять с отключённым кешем: DevTools → Network → Disable cache,
-либо Cmd+Shift+R.
+**Важно про кеш браузера.** На `serve.py` этой беды нет — он отдаёт файлы
+с `no-store`. На боевом адресе GitHub Pages кеширует на 10 минут: если после
+`git push` страница выглядит по-старому, это кеш, а не сломанный деплой.
+Лечится `Cmd+Shift+R`.
 
 ## З-1. Визуальная связка с аджендой
 
@@ -238,7 +245,7 @@ order by t.role, d.sort;
 
 ## И. Поведение без сети
 
-37. Открыть **без** `?mock=1`: http://localhost:8765/index.html
+37. Открыть **без** `?mock=1`: http://localhost:8766/index.html
     **Смотреть:** красный баннер «Нет связи с сервером», страница живая, не белый экран.
 38. Открыть с `?mock=1`, дать загрузиться, затем DevTools → Network → Offline, F5.
     **Смотреть:** доктора из кэша, бейджи занятости скрыты, кнопки записи отключены,
