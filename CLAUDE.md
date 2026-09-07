@@ -23,6 +23,7 @@
 | [specs/30-design-system.md](specs/30-design-system.md) | Токены, компоненты, правила визуала |
 | [specs/40-tech-and-deploy.md](specs/40-tech-and-deploy.md) | Хостинг, ключи, деплой, чек-лист дня |
 | [specs/50-test-plan.md](specs/50-test-plan.md) | Как проверить локально, сценарии приёмки, как заводить докторов |
+| [specs/60-backlog.md](specs/60-backlog.md) | Правки до 14 сентября: что делаем, в каком порядке и почему |
 
 ## Стек
 
