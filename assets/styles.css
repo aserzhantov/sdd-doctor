@@ -496,15 +496,6 @@ tr:hover td { background: var(--surface); }
 .line-item .n .sm { font-size: 12.5px; color: var(--muted); }
 .line-item.is-past { opacity: .4; }
 
-/* --- Доска зоны ---------------------------------------------------------- */
-
-.board { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
-.board .col { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; }
-.board .col h3 { margin: 0; font-size: 19px; }
-.board .col .tbl { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
-.board .cur { font-size: 24px; font-weight: 700; margin: 8px 0 2px; }
-.board .free-list { margin-top: 12px; font-size: 15px; font-family: var(--mono); color: var(--cyan); }
-
 /* --- Подвал -------------------------------------------------------------- */
 
 footer {
@@ -517,7 +508,6 @@ footer {
 @media (min-width: 640px) {
   .doctors { grid-template-columns: repeat(2, 1fr); }
   .slots   { grid-template-columns: repeat(4, 1fr); }
-  .board   { grid-template-columns: repeat(2, 1fr); }
 
   /* Места хватает — единорог уходит в правый нижний угол плашки, как на слайде,
      а комментарий встаёт слева от него. */
@@ -529,14 +519,7 @@ footer {
 
 @media (min-width: 1024px) {
   .slots { grid-template-columns: repeat(6, 1fr); }
-  .board { grid-template-columns: repeat(4, 1fr); }
 }
-
-/* Доска висит на экране — крупнее для взгляда издалека */
-body.board-page { font-size: 17px; }
-/* Шапка и контент должны быть одной ширины, иначе окно терминала уже доски. */
-body.board-page .wrap,
-body.board-page .top-inner { max-width: 1500px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

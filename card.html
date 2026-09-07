@@ -171,25 +171,30 @@
  * а выбор доктора происходит на витрине.
  * ------------------------------------------------------------------------- */
 
-const TOKEN = App.qs('t');
+/* Токен здесь не нужен и не должен быть нужен. Раньше страница ходила
+ * в admin_list_doctors, то есть требовала админский токен — а тот отдаёт
+ * ещё и токены всех докторов. Ссылка на печать табличек фактически была
+ * ссылкой в админку: достаточно поменять card.html на admin.html в адресе.
+ *
+ * Публичная v_doctors отдаёт ровно то, что нужно табличке, и уже отфильтрована
+ * по active. Ничего секретного на листе нет: алиас, стол и QR и так лежат
+ * на столах и видны на витрине. */
 let DOCS = [];
 
 const $ = (id) => document.getElementById(id);
 const deny = (m) => { $('sheets').innerHTML = `<div class="notice">${App.esc(m)}</div>`; };
 
 async function load() {
-  if (!TOKEN) return deny('Нужен токен организатора: card.html?t=<токен>');
   try {
-    DOCS = await App.rpc('admin_list_doctors', { p_token: TOKEN });
+    DOCS = await App.select('v_doctors', 'select=*&order=sort.asc,alias.asc');
     render();
   } catch (e) {
-    if (e.code === 'P0001') return deny('Доступ запрещён. Проверьте ссылку.');
     deny('Не удалось загрузить докторов. Проверьте связь.');
   }
 }
 
 function render() {
-  const active = DOCS.filter(d => d.active);
+  const active = DOCS;
 
   $('controls').innerHTML = `
     <div class="row-between" style="margin:18px 0 14px">
