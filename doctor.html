@@ -81,12 +81,15 @@ function render() {
 
   const card = (label, slot, empty) => {
     const rec = slot ? occ.get(slot.key) : null;
+    // Время стоит рядом с меткой, а не в хвосте темы: тема бывает
+    // в 120 символов, и время в её конце читалось как часть фразы.
     return `<div class="now-card ${rec ? 'active' : ''}" style="margin-bottom:var(--gap)">
-      <div class="label">${label}</div>
+      <div class="label">
+        <span>${label}</span>
+        ${rec ? `<span class="when">${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}</span>` : ''}
+      </div>
       <div class="big">${rec ? App.esc(rec.role) : empty}</div>
-      <div class="sub">${rec
-        ? `${App.esc(rec.topic)} · ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}`
-        : ''}</div>
+      ${rec && rec.topic ? `<div class="sub">${App.esc(rec.topic)}</div>` : ''}
     </div>`;
   };
 

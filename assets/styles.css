@@ -461,7 +461,11 @@ tr:hover td { background: var(--surface); }
 /* Идёт приём — жёлтая полоса слева. Тот же приём, что и в «вашей записи»:
    жёлтый в этой системе всегда значит «сейчас касается тебя». */
 .now-card.active { border-left: 3px solid var(--yellow); }
-.now-card .label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--yellow); }
+.now-card .label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--yellow);
+                   display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+/* Время приёма — самостоятельный элемент в строке метки. Раньше оно висело
+   в хвосте темы вопроса, а тема выросла до 120 символов и время в ней терялось. */
+.now-card .label .when { font-size: 13px; font-weight: 700; letter-spacing: .2px; flex: none; }
 .now-card .big { font-size: clamp(22px, 6vw, 30px); font-weight: 700; margin-top: 6px; }
 .now-card .sub { color: var(--muted); margin-top: 3px; }
 

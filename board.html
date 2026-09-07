@@ -79,11 +79,10 @@ function render() {
       <div class="cur">${
         !rec ? 'Свободно' : (rec.kind === 'participant' ? App.esc(rec.role) : 'Перерыв')
       }</div>
-      <div style="color:var(--muted)">${
-        rec && rec.kind === 'participant'
-          ? App.esc(rec.topic) + ' · до ' + App.fmtTime(cur.end)
-          : (cur ? 'до ' + App.fmtTime(cur.end) : '')
-      }</div>
+      <!-- Тему вопроса здесь не показываем. Доска висит на экране в зале,
+           её видят все проходящие мимо, а человек писал «что беспокоит»
+           доктору, а не залу. Роль обезличена — её оставляем. -->
+      <div style="color:var(--muted)">${cur ? 'до ' + App.fmtTime(cur.end) : ''}</div>
 
       <div class="free-list">
         ${free.length ? 'Свободно: ' + free.join(' · ') : 'Свободных слотов нет'}
