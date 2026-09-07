@@ -128,6 +128,24 @@ function renderMine() {
   const mine = App.lsGet(App.KEY_BOOKING);
   if (!mine) { host.innerHTML = ''; return; }
 
+  // Бронь могли удалить в админке, а в браузере она осталась. Сверяемся
+  // с занятостью: нет слота в v_occupancy — запись фантомная, и держать её
+  // на экране опаснее всего. Человек придёт к столу уверенным, что записан.
+  //
+  // Только когда есть связь: без неё OCC пуст, и мы стёрли бы живую бронь.
+  if (online) {
+    const key = new Date(mine.slot_start).getTime();
+    const alive = OCC.some(o => o.doctor_id === mine.doctor_id
+      && o.kind === 'participant'
+      && new Date(o.slot_start).getTime() === key);
+    if (!alive) {
+      App.lsDel(App.KEY_BOOKING);
+      host.innerHTML = '';
+      App.toast('Запись отменена организатором', 'err');
+      return;
+    }
+  }
+
   // Доктора могли выключить в админке — тогда его нет в v_doctors.
   // Показывать сырой идентификатор нельзя, это пугает и ничего не объясняет.
   const doc = DOCTORS.find(d => d.id === mine.doctor_id);
