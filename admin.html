@@ -83,7 +83,7 @@ function renderDocs() {
       <div class="card">
         <div class="row-between">
           <div style="min-width:0">
-            <div style="font-weight:700">${App.esc(d.name)}
+            <div style="font-weight:700">${App.esc(d.alias)}
               ${d.active ? '' : '<span class="badge off" style="margin-left:6px">выключен</span>'}
             </div>
             <div style="color:var(--muted);font-size:13px">
@@ -126,23 +126,23 @@ function openForm(d) {
 
       <div class="field" id="fId">
         <label for="iId">Идентификатор (латиница)</label>
-        <input id="iId" value="${v('id')}" ${d ? 'disabled' : ''} placeholder="например, ivanov">
+        <input id="iId" value="${v('id')}" ${d ? 'disabled' : ''} placeholder="например, doc-1">
         <div class="err">Только латиница, цифры и дефис, 2–32 символа</div>
       </div>
       <div style="margin:-6px 0 14px;font-size:12.5px;color:var(--faint)">
-        Он же имя файла фото: <code>assets/doctors/${v('id') || '&lt;id&gt;'}.jpg</code> —
-        положить в репозиторий и запушить. Без файла будет аватар с инициалами.
-        После создания идентификатор не меняется: на нём завязаны ссылка доктора и QR стола.
+        Синтетический: <code>doc-1</code>, <code>doc-2</code>. Не фамилия — имён в системе нет.
+        После создания не меняется: на нём завязана персональная ссылка доктора.
       </div>
 
-      <div class="field" id="fName">
-        <label for="iName">Имя и фамилия</label>
-        <input id="iName" value="${v('name')}" maxlength="80">
+      <div class="field" id="fAlias">
+        <label for="iAlias">Алиас доктора</label>
+        <input id="iAlias" value="${v('alias')}" maxlength="80" placeholder="например, Доктор Спека">
         <div class="err">Минимум 2 символа</div>
       </div>
       <div class="field">
-        <label for="iRole">Должность и команда</label>
-        <input id="iRole" value="${v('role')}" maxlength="120">
+        <label for="iRole">Роль</label>
+        <input id="iRole" value="${v('role')}" maxlength="120"
+               placeholder="например, руководитель разработки">
       </div>
       <div class="field">
         <label for="iSpec">Специализация — с чем помогает</label>
@@ -188,13 +188,13 @@ function openForm(d) {
 
 async function save() {
   const id   = ($('iId').value || '').trim().toLowerCase();
-  const name = ($('iName').value || '').trim();
+  const alias = ($('iAlias').value || '').trim();
   const time = (v) => (v && /^\d{1,2}:\d{2}$/.test(v.trim())) ? v.trim() : null;
 
   const badId = !/^[a-z0-9-]{2,32}$/.test(id);
   $('fId').classList.toggle('bad', badId);
-  $('fName').classList.toggle('bad', name.length < 2);
-  if (badId || name.length < 2) return;
+  $('fAlias').classList.toggle('bad', alias.length < 2);
+  if (badId || alias.length < 2) return;
 
   const btn = $('btnSave');
   btn.disabled = true; btn.textContent = 'Сохраняем…';
@@ -202,7 +202,7 @@ async function save() {
     await App.rpc('admin_upsert_doctor', {
       p_token:     TOKEN,
       p_id:        id,
-      p_name:      name,
+      p_alias:     alias,
       p_role:      $('iRole').value.trim() || null,
       p_specialty: $('iSpec').value.trim() || null,
       p_bio:       $('iBio').value.trim() || null,
@@ -234,14 +234,14 @@ function renderBookings() {
     ${rows.length ? `<div class="card" style="padding:4px 8px"><div class="table-scroll">
       <table>
         <thead><tr>
-          <th>Время</th><th>Доктор</th><th>Стол</th><th>Кто</th><th>Команда</th><th>Тип</th><th></th>
+          <th>Время</th><th>Доктор</th><th>Стол</th><th>Роль</th><th>Что беспокоит</th><th>Тип</th><th></th>
         </tr></thead>
         <tbody>${rows.map(b => `<tr>
           <td class="mono">${App.fmtTime(new Date(b.slot_start))}</td>
-          <td>${App.esc(b.doctor_name)}</td>
+          <td>${App.esc(b.doctor_alias)}</td>
           <td>${b.table_no ? '№' + App.esc(b.table_no) : '—'}</td>
-          <td>${App.esc(b.name || '—')}</td>
-          <td>${App.esc(b.team || '—')}</td>
+          <td>${App.esc(b.role || '—')}</td>
+          <td>${App.esc(b.topic || '—')}</td>
           <td>${b.kind === 'blocked' ? 'блокировка' : 'запись'}</td>
           <td><button class="btn danger sm" data-del="${App.esc(b.id)}">Удалить</button></td>
         </tr>`).join('')}</tbody>
@@ -249,16 +249,16 @@ function renderBookings() {
     </div></div>` : '<div class="notice">Записей пока нет.</div>'}`;
 
   $('btnCsv').onclick = () => App.downloadCSV(`sdd-doctor-${CONFIG.DAY}.csv`, [
-    ['Время', 'Доктор', 'Стол', 'Имя', 'Команда', 'Тип'],
+    ['Время', 'Доктор', 'Стол', 'Роль', 'Что беспокоит', 'Тип'],
     ...rows.map(b => [
-      App.fmtTime(new Date(b.slot_start)), b.doctor_name, b.table_no || '',
-      b.name || '', b.team || '', b.kind === 'blocked' ? 'блокировка' : 'запись',
+      App.fmtTime(new Date(b.slot_start)), b.doctor_alias, b.table_no || '',
+      b.role || '', b.topic || '', b.kind === 'blocked' ? 'блокировка' : 'запись',
     ]),
   ]);
 
   document.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => {
     const b = rows.find(x => x.id === btn.dataset.del);
-    const who = b.kind === 'blocked' ? 'блокировку' : `запись «${b.name}»`;
+    const who = b.kind === 'blocked' ? 'блокировку' : `запись «${b.role}»`;
     if (!confirm(`Удалить ${who} на ${App.fmtTime(new Date(b.slot_start))}?\nСлот освободится для других участников.`)) return;
     try {
       await App.rpc('admin_delete_booking', { p_token: TOKEN, p_id: b.id });

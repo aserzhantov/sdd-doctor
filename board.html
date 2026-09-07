@@ -70,18 +70,18 @@ function render() {
       .map(s => App.fmtTime(s.start));
 
     return `<div class="col">
-      <h3>${App.esc(d.name)}</h3>
+      <h3>${App.esc(d.alias)}</h3>
       <div class="tbl">${d.table_no ? 'Стол №' + App.esc(d.table_no) : ''}</div>
 
       <div class="label" style="font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--cyan)">
         Сейчас
       </div>
       <div class="cur">${
-        !rec ? 'Свободно' : (rec.kind === 'participant' ? App.esc(rec.name) : 'Перерыв')
+        !rec ? 'Свободно' : (rec.kind === 'participant' ? App.esc(rec.role) : 'Перерыв')
       }</div>
       <div style="color:var(--muted)">${
         rec && rec.kind === 'participant'
-          ? App.esc(rec.team) + ' · до ' + App.fmtTime(cur.end)
+          ? App.esc(rec.topic) + ' · до ' + App.fmtTime(cur.end)
           : (cur ? 'до ' + App.fmtTime(cur.end) : '')
       }</div>
 

@@ -183,26 +183,10 @@ const App = (() => {
     ));
   }
 
-  function initials(name) {
-    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return '—';
-    return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
-  }
-
-  /** Фото по конвенции assets/doctors/<id>.jpg. Нет файла -> аватар с инициалами.
-   *  См. CLAUDE.md, раздел «Конвенции». */
-  function avatarHTML(doctor, cls = 'ava') {
-    const id = esc(doctor.id), ini = esc(initials(doctor.name));
-    return `<div class="${cls}" data-ini="${ini}">
-      <img src="assets/doctors/${id}.jpg" alt="" loading="lazy"
-           onerror="App.avatarFallback(this)">
-    </div>`;
-  }
-  function avatarFallback(img) {
-    const box = img.parentElement;
-    box.classList.add('ph');
-    box.textContent = box.dataset.ini || '—';
-  }
+  /* Фотографий и аватаров с инициалами здесь больше нет. Изображение лица —
+   * персональные данные, а файлы лежали в публичном репозитории; инициалы
+   * строились из имени, которого в системе тоже не осталось.
+   * См. specs/60-backlog.md. */
 
   function toast(message, type = '') {
     let host = document.querySelector('.toasts');
@@ -272,6 +256,6 @@ const App = (() => {
     slotsFor, occupancyMap, offGrid, slotState, freeCount,
     select, rpc, ApiError, errText,
     lsGet, lsSet, lsDel, KEY_BOOKING, KEY_DOCTORS,
-    esc, initials, avatarHTML, avatarFallback, toast, qs, downloadCSV, renderHeader,
+    esc, toast, qs, downloadCSV, renderHeader,
   };
 })();

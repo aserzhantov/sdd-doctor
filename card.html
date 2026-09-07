@@ -82,23 +82,20 @@
               letter-spacing: normal; color: #0D0D0D; }
 
 /* --- Зона 2: доктор --- */
-/* Блок доктора прижат к верхней границе плашки с номером — так фото, имя
-   и текст под ними выстраиваются в одну линию с её верхом. QR при этом
-   остаётся отцентрованным по высоте плашки. */
+/* Блок доктора прижат к верхней границе плашки с номером — так алиас и текст
+   под ним выстраиваются в одну линию с её верхом. QR при этом остаётся
+   отцентрованным по высоте плашки. */
 .sheet .who-col { flex: 1; min-width: 0; min-height: 0; overflow: hidden;
                   display: flex; flex-direction: column; justify-content: flex-start; }
-/* flex-start, а не center: при имени в две строки текстовый блок становится выше
-   фото, и по центру фото съезжало вниз, ломая выравнивание с плашкой номера. */
-.sheet .who { display: flex; align-items: flex-start; gap: 6mm; }
-.sheet .who .ava { width: 24mm; height: 24mm; border-radius: 3mm; overflow: hidden; flex: none; }
-.sheet .who .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.sheet .who .ava.ph { background: #0D0D0D;
-                      display: grid; place-items: center; color: #EAE9E7; font-size: 9mm; font-weight: 700; }
+/* Фотографии здесь больше нет: изображение лица — персональные данные,
+   см. specs/60-backlog.md. Освободившиеся 30 мм отданы алиасу — он теперь
+   единственное, чем доктор представлен, и должен читаться через стол. */
+.sheet .who { min-width: 0; }
 
-/* Длинные ФИО и должности встречаются, поэтому все тексты ограничены
+/* Длинные алиасы и роли встречаются, поэтому все тексты ограничены
    по числу строк — макет не должен зависеть от того, что напишут в админке. */
 .sheet .clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-.sheet .name { font-size: 9mm; font-weight: 700; line-height: 1.1; -webkit-line-clamp: 2; letter-spacing: -.2mm; }
+.sheet .name { font-size: 12mm; font-weight: 700; line-height: 1.1; -webkit-line-clamp: 2; letter-spacing: -.2mm; }
 .sheet .role { font-size: 4.4mm; color: #6E6E68; margin-top: 1.5mm; line-height: 1.25; -webkit-line-clamp: 2; }
 /* Обрезка живёт во внутреннем .spec-t, а не на самом чипе: при clamp прямо
    на padding-элементе из-под второй строки выглядывал обрезок третьей.
@@ -207,13 +204,11 @@ function render() {
 
   $('sheets').innerHTML = active.map(sheet).join('');
   $('foot').textContent =
-    `Готово табличек: ${active.length}. QR ведёт на стол, а не на фамилию — при замене доктора ссылка остаётся рабочей.`;
+    `Готово табличек: ${active.length}. QR один на всё мероприятие и ведёт на витрину — при замене доктора он остаётся рабочим.`;
 }
 
 function sheet(d) {
   const n = d.table_no;
-  const ini = App.esc(App.initials(d.name));
-
   // Один и тот же общий QR на всех табличках — ведёт на витрину докторов.
   const qr = `<img class="qr" src="qr/main.png" alt="QR на запись">
        <div class="qr-cap">Наведите камеру телефона,<br>выберите доктора и свободное время</div>`;
@@ -237,13 +232,8 @@ function sheet(d) {
 
         <div class="who-col">
           <div class="who">
-            <div class="ava" data-ini="${ini}">
-              <img src="assets/doctors/${App.esc(d.id)}.jpg" alt="" onerror="App.avatarFallback(this)">
-            </div>
-            <div style="min-width:0">
-              <div class="name clamp">${App.esc(d.name)}</div>
-              ${d.role ? `<div class="role clamp">${App.esc(d.role)}</div>` : ''}
-            </div>
+            <div class="name clamp">${App.esc(d.alias)}</div>
+            ${d.role ? `<div class="role clamp">${App.esc(d.role)}</div>` : ''}
           </div>
 
           ${d.specialty ? `<div><span class="spec"><span class="spec-t">${App.esc(d.specialty)}</span></span></div>` : ''}

@@ -83,9 +83,9 @@ function render() {
     const rec = slot ? occ.get(slot.key) : null;
     return `<div class="now-card ${rec ? 'active' : ''}" style="margin-bottom:var(--gap)">
       <div class="label">${label}</div>
-      <div class="big">${rec ? App.esc(rec.name) : empty}</div>
+      <div class="big">${rec ? App.esc(rec.role) : empty}</div>
       <div class="sub">${rec
-        ? `${App.esc(rec.team)} · ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}`
+        ? `${App.esc(rec.topic)} · ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}`
         : ''}</div>
     </div>`;
   };
@@ -93,9 +93,8 @@ function render() {
   $('root').innerHTML = `
     <div class="row-between" style="margin:18px 0 16px">
       <div class="slot-head" style="margin:0">
-        ${App.avatarHTML(DOCTOR)}
         <div>
-          <div style="font-size:20px;font-weight:800">${App.esc(DOCTOR.name)}</div>
+          <div style="font-size:20px;font-weight:800">${App.esc(DOCTOR.alias)}</div>
           ${DOCTOR.role ? `<div style="color:var(--muted);font-size:13px">${App.esc(DOCTOR.role)}</div>` : ''}
           <div style="color:var(--muted);font-size:13px">
             ${DOCTOR.table_no ? 'Стол №' + App.esc(DOCTOR.table_no) + ' · ' : ''}
@@ -122,7 +121,7 @@ function render() {
           right = `<button class="btn ghost sm" data-unblock="${s.key}">Освободить</button>`;
         }
         const who = kind === 'participant'
-          ? `<div><b>${App.esc(rec.name)}</b></div><div class="sm">${App.esc(rec.team)}</div>`
+          ? `<div><b>${App.esc(rec.role)}</b></div><div class="sm">${App.esc(rec.topic)}</div>`
           : kind === 'blocked'
             ? `<div style="color:var(--muted)">Заблокировано</div>`
             : `<div style="color:var(--faint)">Свободно</div>`;
@@ -141,7 +140,7 @@ function render() {
       </div>
       ${off.map(r => `<div class="line-item">
         <div class="t">${App.fmtTime(new Date(r.slot_start))}</div>
-        <div class="n"><b>${App.esc(r.name || '—')}</b><div class="sm">${App.esc(r.team || '')}</div></div>
+        <div class="n"><b>${App.esc(r.role || '—')}</b><div class="sm">${App.esc(r.topic || '')}</div></div>
       </div>`).join('')}
     </div>` : ''}`;
 

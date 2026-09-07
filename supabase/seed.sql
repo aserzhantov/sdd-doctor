@@ -38,16 +38,19 @@ select encode(extensions.gen_random_bytes(12), 'hex'), 'admin', null, 'Орга�
 -- Когда состав утвердится, полезно вписать его сюда для воспроизводимости.
 -- Шаблон:
 --
--- insert into public.doctors (id, name, role, specialty, bio, table_no, sort, active)
--- values ('ivanov', 'Иван Иванов', 'Должность, команда',
+-- insert into public.doctors (id, alias, role, specialty, bio, table_no, sort, active)
+-- values ('doc-1', 'Доктор Спека', 'Роль без названия команды',
 --         'С чем помогает', 'Опыт, 2-4 предложения.', 1, 10, true)
 -- on conflict (id) do nothing;   -- do nothing, чтобы не затирать правки из админки
+--
+-- Идентификатор синтетический (doc-1, doc-2), алиас доктор придумывает сам:
+-- имён в системе нет, см. specs/20-data-model.md.
 
 -- -----------------------------------------------------------------------------
 -- Токены докторов — на случай, если доктора заводились SQL-ом выше
 -- -----------------------------------------------------------------------------
 insert into public.access_tokens (token, role, doctor_id, label)
-select encode(extensions.gen_random_bytes(12), 'hex'), 'doctor', d.id, d.name
+select encode(extensions.gen_random_bytes(12), 'hex'), 'doctor', d.id, d.alias
   from public.doctors d
  where not exists (
    select 1 from public.access_tokens t where t.doctor_id = d.id and t.role = 'doctor'
@@ -58,7 +61,7 @@ select encode(extensions.gen_random_bytes(12), 'hex'), 'doctor', d.id, d.name
 -- -----------------------------------------------------------------------------
 select
   t.role,
-  coalesce(d.name, 'Организатор') as who,
+  coalesce(d.alias, 'Организатор') as who,
   case t.role
     when 'admin'  then 'admin.html?t='  || t.token
     else               'doctor.html?doc=' || t.doctor_id || '&t=' || t.token

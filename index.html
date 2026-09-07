@@ -53,7 +53,7 @@ let online = true;
 // иначе следующий load() перерисует страницу и затрёт «Вы записаны».
 let DONE = null;
 // Выбранный слот и черновик формы. Держим отдельно от DOM, чтобы автообновление
-// занятости не стирало подсветку и уже набранные имя с командой.
+// занятости не стирало подсветку и уже набранный текст.
 let SELECTED = null;
 
 const $ = (id) => document.getElementById(id);
@@ -63,7 +63,7 @@ const $ = (id) => document.getElementById(id);
 async function load() {
   try {
     const [docs, occ] = await Promise.all([
-      App.select('v_doctors', 'select=*&order=sort.asc,name.asc'),
+      App.select('v_doctors', 'select=*&order=sort.asc,alias.asc'),
       App.select('v_occupancy', 'select=*'),
     ]);
     DOCTORS = docs || [];
@@ -133,7 +133,7 @@ function renderMine() {
   host.innerHTML = `
     <div class="mine-card">
       <div class="label">Ваша запись</div>
-      <div class="who">${doc ? App.esc(doc.name) : 'Доктор снят с приёма'}</div>
+      <div class="who">${doc ? App.esc(doc.alias) : 'Доктор снят с приёма'}</div>
       <div class="when">
         ${App.esc(App.fmtTime(start))}–${App.esc(App.fmtTime(App.addMinutes(start, CONFIG.SLOT_MINUTES)))}
         ${doc && doc.table_no ? ' · стол №' + App.esc(doc.table_no) : ''}
@@ -191,9 +191,8 @@ function renderList() {
 
     return `
       <button class="doc" data-id="${App.esc(d.id)}" ${locked ? 'disabled' : ''}>
-        ${App.avatarHTML(d)}
         <div class="body">
-          <div class="name">${App.esc(d.name)}</div>
+          <div class="name">${App.esc(d.alias)}</div>
           ${d.role ? `<div class="role">${App.esc(d.role)}</div>` : ''}
           ${d.specialty ? `<span class="spec"><span class="spec-t">${App.esc(d.specialty)}</span></span>` : ''}
           ${d.bio ? `<div class="bio">${App.esc(d.bio)}</div>` : ''}
@@ -250,9 +249,8 @@ function renderSlots(id) {
   host.innerHTML = `
     <button class="back" id="btnBack">← Все доктора</button>
     <div class="slot-head">
-      ${App.avatarHTML(d)}
       <div>
-        <div class="name" style="font-size:19px;font-weight:700">${App.esc(d.name)}</div>
+        <div class="name" style="font-size:19px;font-weight:700">${App.esc(d.alias)}</div>
         ${d.role ? `<div class="role" style="font-size:12.5px">${App.esc(d.role)}</div>` : ''}
         ${d.table_no ? `<div class="table-no" style="margin-top:4px">Стол <b>№${App.esc(d.table_no)}</b></div>` : ''}
       </div>
@@ -279,7 +277,7 @@ function renderSlots(id) {
   host.querySelectorAll('.slot:not([disabled])').forEach(el => {
     el.onclick = () => {
       const key = Number(el.dataset.key);
-      SELECTED = { doctorId: d.id, key, name: '', team: '' };
+      SELECTED = { doctorId: d.id, key, role: '', topic: '' };
       renderSlots(d.id);
       $('formHost').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
@@ -298,37 +296,47 @@ function renderForm(doctor, slot) {
       <div class="section-title" style="margin-top:0">
         Запись на ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}
       </div>
-      <div class="field" id="fName">
-        <label for="iName">Как вас зовут</label>
-        <input id="iName" maxlength="60" autocomplete="name" placeholder="Имя и фамилия"
-               value="${App.esc(SELECTED.name)}">
-        <div class="err">Укажите имя, от 2 символов</div>
+      <div class="field" id="fRole">
+        <label for="iRole">Ваша роль</label>
+        <input id="iRole" maxlength="60" placeholder="Например, тимлид бэкенда"
+               value="${App.esc(SELECTED.role)}">
+        <div class="hint">Название команды писать не нужно</div>
+        <div class="err">Укажите роль, от 10 символов</div>
       </div>
-      <div class="field" id="fTeam">
-        <label for="iTeam">Команда или подразделение</label>
-        <input id="iTeam" maxlength="80" autocomplete="organization" placeholder="Например, кластер Платежи"
-               value="${App.esc(SELECTED.team)}">
-        <div class="err">Укажите команду, от 2 символов</div>
+      <div class="field" id="fTopic">
+        <label for="iTopic">Что беспокоит</label>
+        <input id="iTopic" maxlength="120"
+               placeholder="Команда саботирует спеки, откатываемся на код-первый"
+               value="${App.esc(SELECTED.topic)}">
+        <div class="hint" id="topicHint">Одним предложением — подробности расскажете на приёме</div>
+        <div class="err">Опишите вопрос, от 10 символов</div>
       </div>
       <button class="btn" id="btnBook">Записаться</button>
     </div>`;
 
   // Черновик держим в SELECTED: страница обновляет занятость раз в минуту,
   // и без этого набранный текст пропадал бы прямо из-под рук.
-  $('iName').oninput = (e) => { SELECTED.name = e.target.value; };
-  $('iTeam').oninput = (e) => { SELECTED.team = e.target.value; };
+  $('iRole').oninput = (e) => { SELECTED.role = e.target.value; };
+  $('iTopic').oninput = (e) => {
+    SELECTED.topic = e.target.value;
+    // Счётчик показываем только на подходе к пределу: раньше он лишь давит.
+    const left = 120 - e.target.value.length;
+    $('topicHint').textContent = left <= 30
+      ? `Осталось ${left} символов`
+      : 'Одним предложением — подробности расскажете на приёме';
+  };
   $('btnBook').onclick = () => submit(doctor, slot);
 }
 
 async function submit(doctor, slot) {
-  const name = $('iName').value.trim();
-  const team = $('iTeam').value.trim();
+  const role  = $('iRole').value.trim();
+  const topic = $('iTopic').value.trim();
 
-  const badName = name.length < 2 || name.length > 60;
-  const badTeam = team.length < 2 || team.length > 80;
-  $('fName').classList.toggle('bad', badName);
-  $('fTeam').classList.toggle('bad', badTeam);
-  if (badName || badTeam) return;
+  const badRole  = role.length  < 10 || role.length  > 60;
+  const badTopic = topic.length < 10 || topic.length > 120;
+  $('fRole').classList.toggle('bad', badRole);
+  $('fTopic').classList.toggle('bad', badTopic);
+  if (badRole || badTopic) return;
 
   const btn = $('btnBook');
   btn.disabled = true;
@@ -338,8 +346,8 @@ async function submit(doctor, slot) {
     const res = await App.rpc('book_slot', {
       p_doctor_id:  doctor.id,
       p_slot_start: slot.start.toISOString(),
-      p_name:       name,
-      p_team:       team,
+      p_role:       role,
+      p_topic:      topic,
     });
 
     App.lsSet(App.KEY_BOOKING, {
@@ -367,7 +375,7 @@ function showDone(doctor, slot) {
       <div class="tick">✓</div>
       <h2>Вы записаны</h2>
       <div class="det">
-        <b>${App.esc(doctor.name)}</b><br>
+        <b>${App.esc(doctor.alias)}</b><br>
         ${App.fmtTime(slot.start)}–${App.fmtTime(slot.end)}
         ${doctor.table_no ? ' · стол №' + App.esc(doctor.table_no) : ''}
       </div>

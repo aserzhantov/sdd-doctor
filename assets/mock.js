@@ -21,36 +21,40 @@
    * демо-биографии выдуманы, а скриншот легко уходит дальше. */
   const SEED = {
     doctors: [
-      { id:'demo-1', name:'Доктор Первый', role:'Демо-данные · должность и команда',
+      { id:'demo-1', alias:'Доктор Спека', role:'Демо · роль без названия команды',
         specialty:'Демо · с чем помогает', table_no:1, sort:10, active:true,
         win_start:null, win_end:null, token:'mock-1',
         bio:'Демо-описание для проверки вёрстки. Здесь будет 2–4 предложения про реальный опыт доктора: с какими системами работал и с чем может помочь.' },
-      { id:'demo-2', name:'Доктор Второй', role:'Демо-данные · должность и команда',
+      { id:'demo-2', alias:'Доктор Рефакторинг', role:'Демо · роль без названия команды',
         specialty:'Демо · с чем помогает', table_no:2, sort:20, active:true,
         win_start:null, win_end:null, token:'mock-2',
         bio:'Демо-описание для проверки вёрстки. Текст специально длинный, чтобы увидеть, как карточка обрезает его на третьей строке многоточием.' },
-      { id:'demo-3', name:'Доктор Третий', role:'Демо-данные · должность и команда',
+      { id:'demo-3', alias:'Доктор Пайплайн', role:'Демо · роль без названия команды',
         specialty:'Демо · с чем помогает', table_no:3, sort:30, active:true,
         win_start:null, win_end:null, token:'mock-3',
         bio:'Демо-описание для проверки вёрстки. У этого доктора занята часть слотов, чтобы посмотреть на жёлтый бейдж «осталось мало».' },
-      { id:'demo-4', name:'Доктор Четвёртый', role:'Демо-данные · должность и команда',
+      { id:'demo-4', alias:'Доктор Ревью', role:'Демо · роль без названия команды',
         specialty:'Демо · с чем помогает', table_no:4, sort:40, active:true,
         win_start:null, win_end:null, token:'mock-4',
         bio:'Демо-описание для проверки вёрстки. Этот доктор свободен целиком — видно циановый бейдж на всю сетку.' },
     ],
     bookings: [
       { id:'m1', doctor_id:'demo-1', slot_start:t('14','30'), kind:'participant',
-        name:'Участник Первый', team:'Демо-команда А', cancel_code:'x1' },
+        role:'Тимлид бэкенда', topic:'Спеки пишем после кода, толку от них ноль',
+        cancel_code:'x1' },
       { id:'m2', doctor_id:'demo-1', slot_start:t('14','50'), kind:'participant',
-        name:'Участник Второй', team:'Демо-команда Б', cancel_code:'x2' },
+        role:'Системный аналитик', topic:'Агент генерит мусор по нашим спекам',
+        cancel_code:'x2' },
       { id:'m3', doctor_id:'demo-1', slot_start:t('15','10'), kind:'blocked',
-        name:null, team:null, cancel_code:'x3' },
+        role:null, topic:null, cancel_code:'x3' },
       // у третьего занято 8 из 9 — проверка жёлтого бейджа «Остался 1 слот».
       // Слоты перечислены явно: сетка 20-минутная, по круглым часам не строится.
       ...[['14','30'], ['14','50'], ['15','10'], ['15','30'],
           ['15','50'], ['16','10'], ['16','30'], ['16','50']].map(([h, m], i) => (
         { id:'m4' + i, doctor_id:'demo-3', slot_start:t(h, m), kind:'participant',
-          name:'Участник ' + (i + 3), team:'Демо-команда В', cancel_code:'x4' + i }
+          role:'Демо-роль участника ' + (i + 1),
+          topic:'Демо-вопрос ' + (i + 1) + ': что беспокоит на приёме',
+          cancel_code:'x4' + i }
       )),
     ],
   };
@@ -68,10 +72,10 @@
       let rows = db.doctors.filter(d => d.active);
       const m = query.match(/id=eq\.([a-z0-9-]+)/i);
       if (m) rows = rows.filter(d => d.id === m[1]);
-      return rows.sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name));
+      return rows.sort((a, b) => (a.sort - b.sort) || a.alias.localeCompare(b.alias));
     }
     if (view === 'v_occupancy') {
-      // как настоящая view: без имён и команд
+      // как настоящая view: только занятость, без роли и темы вопроса
       return db.bookings.map(b => ({ doctor_id: b.doctor_id, slot_start: b.slot_start, kind: b.kind }));
     }
     return [];
@@ -88,11 +92,12 @@
         const d = db.doctors.find(x => x.id === a.p_doctor_id);
         if (!d) fail('P0002');
         if (!d.active) fail('P0003');
-        if (!a.p_name || a.p_name.trim().length < 2) fail('P0004');
-        if (!a.p_team || a.p_team.trim().length < 2) fail('P0004');
+        const rl = (a.p_role || '').trim().length, tl = (a.p_topic || '').trim().length;
+        if (rl < 10 || rl > 60)  fail('P0004');
+        if (tl < 10 || tl > 120) fail('P0004');
         if (taken(a.p_doctor_id, a.p_slot_start)) fail('23505');   // тот же уникальный индекс
         const row = { id: uid(), doctor_id: a.p_doctor_id, slot_start: a.p_slot_start,
-                      kind: 'participant', name: a.p_name.trim(), team: a.p_team.trim(),
+                      kind: 'participant', role: a.p_role.trim(), topic: a.p_topic.trim(),
                       cancel_code: uid() };
         db.bookings.push(row); write(db);
         return { id: row.id, cancel_code: row.cancel_code };
@@ -120,7 +125,7 @@
         if (a.p_blocked) {
           if (taken(a.p_doctor_id, a.p_slot_start)) fail('23505');
           db.bookings.push({ id: uid(), doctor_id: a.p_doctor_id, slot_start: a.p_slot_start,
-                             kind: 'blocked', name: null, team: null, cancel_code: uid() });
+                             kind: 'blocked', role: null, topic: null, cancel_code: uid() });
         } else {
           const i = db.bookings.findIndex(
             b => b.doctor_id === a.p_doctor_id && b.kind === 'blocked' &&
@@ -133,15 +138,15 @@
 
       case 'admin_list_doctors':
         if (a.p_token !== 'mock-admin') fail('P0001');
-        return db.doctors.slice().sort((x, y) => (x.sort - y.sort) || x.name.localeCompare(y.name));
+        return db.doctors.slice().sort((x, y) => (x.sort - y.sort) || x.alias.localeCompare(y.alias));
 
       case 'admin_upsert_doctor': {
         if (a.p_token !== 'mock-admin') fail('P0001');
         if (!/^[a-z0-9-]{2,32}$/.test(a.p_id || '')) fail('P0004');
-        if (!a.p_name || a.p_name.trim().length < 2) fail('P0004');
+        if (!a.p_alias || a.p_alias.trim().length < 2) fail('P0004');
         const cur = db.doctors.find(x => x.id === a.p_id);
         const next = {
-          id: a.p_id, name: a.p_name.trim(), role: a.p_role, specialty: a.p_specialty,
+          id: a.p_id, alias: a.p_alias.trim(), role: a.p_role, specialty: a.p_specialty,
           bio: a.p_bio, table_no: a.p_table_no, win_start: a.p_win_start, win_end: a.p_win_end,
           sort: a.p_sort ?? 100, active: a.p_active !== false,
           token: cur ? cur.token : 'mock-' + a.p_id,
@@ -155,7 +160,7 @@
         if (a.p_token !== 'mock-admin') fail('P0001');
         return db.bookings.map(b => {
           const d = db.doctors.find(x => x.id === b.doctor_id) || {};
-          return { ...b, doctor_name: d.name || b.doctor_id, table_no: d.table_no ?? null };
+          return { ...b, doctor_alias: d.alias || b.doctor_id, table_no: d.table_no ?? null };
         }).sort((x, y) => new Date(x.slot_start) - new Date(y.slot_start));
       }
 
