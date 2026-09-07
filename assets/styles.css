@@ -456,6 +456,11 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 10px 11px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--faint); font-weight: 700; }
 tr:hover td { background: var(--surface); }
+/* Тема вопроса — единственная длинная колонка (до 120 символов). С nowrap
+   она вытягивала таблицу так, что кнопка «Удалить» уезжала за правый край:
+   на широком экране её просто не находили, потому что горизонтальный скролл
+   внутри карточки не бросается в глаза. */
+td.wrap-cell { white-space: normal; min-width: 220px; max-width: 420px; }
 
 .tabs { display: flex; gap: 8px; margin: 22px 0 4px; }
 .tabs button {

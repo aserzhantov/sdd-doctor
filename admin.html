@@ -309,7 +309,7 @@ function renderBookings() {
           <td>${App.esc(b.doctor_alias)}</td>
           <td>${b.table_no ? '№' + App.esc(b.table_no) : '—'}</td>
           <td>${App.esc(b.role || '—')}</td>
-          <td>${App.esc(b.topic || '—')}</td>
+          <td class="wrap-cell">${App.esc(b.topic || '—')}</td>
           <td>${b.kind === 'blocked' ? 'блокировка' : 'запись'}</td>
           <td><button class="btn danger sm" data-del="${App.esc(b.id)}">Удалить</button></td>
         </tr>`).join('')}</tbody>
