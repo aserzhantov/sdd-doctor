@@ -319,10 +319,12 @@ function renderForm(doctor, slot) {
   $('iRole').oninput = (e) => { SELECTED.role = e.target.value; };
   $('iTopic').oninput = (e) => {
     SELECTED.topic = e.target.value;
-    // Счётчик показываем только на подходе к пределу: раньше он лишь давит.
-    const left = 120 - e.target.value.length;
-    $('topicHint').textContent = left <= 30
-      ? `Осталось ${left} символов`
+    // Счётчик включается с 50-го символа: с первого он читается как давление
+    // и подгоняет писать короче, чем человек собирался.
+    const len = e.target.value.length, left = 120 - len;
+    const verb = (left % 10 === 1 && left % 100 !== 11) ? 'Остался' : 'Осталось';
+    $('topicHint').textContent = len >= 50
+      ? `${verb} ${App.plural(left, 'символ', 'символа', 'символов')}`
       : 'Одним предложением — подробности расскажете на приёме';
   };
   $('btnBook').onclick = () => submit(doctor, slot);

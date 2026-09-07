@@ -183,6 +183,16 @@ const App = (() => {
     ));
   }
 
+  /** Русское склонение при числе: 1 символ, 2 символа, 5 символов. */
+  function plural(n, one, few, many) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    const word = (a > 10 && a < 20) ? many
+               : (b > 1 && b < 5)   ? few
+               : (b === 1)          ? one
+               : many;
+    return `${n} ${word}`;
+  }
+
   /* Фотографий и аватаров с инициалами здесь больше нет. Изображение лица —
    * персональные данные, а файлы лежали в публичном репозитории; инициалы
    * строились из имени, которого в системе тоже не осталось.
@@ -256,6 +266,6 @@ const App = (() => {
     slotsFor, occupancyMap, offGrid, slotState, freeCount,
     select, rpc, ApiError, errText,
     lsGet, lsSet, lsDel, KEY_BOOKING, KEY_DOCTORS,
-    esc, toast, qs, downloadCSV, renderHeader,
+    esc, plural, toast, qs, downloadCSV, renderHeader,
   };
 })();
