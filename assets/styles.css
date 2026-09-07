@@ -250,6 +250,23 @@ h1 .cur { color: var(--yellow); animation: blink 1.1s steps(1) infinite; }
 .mine-card .who  { font-size: 18px; font-weight: 700; margin-top: 5px; }
 .mine-card .when { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
 
+/* --- Оценка приёма -------------------------------------------------------
+   Звёзды — текстовый символ, а не картинка: он масштабируется, красится
+   токеном и не тащит ни одного запроса. Погашенная звезда именно серая,
+   а не полупрозрачная жёлтая: на тёмном фоне полупрозрачный жёлтый
+   выглядит как «уже поставлено, но бледно». */
+.stars { display: flex; gap: 6px; margin-top: 2px; }
+.star {
+  background: none; border: 0; padding: 2px 4px;
+  font-size: 30px; line-height: 1; color: var(--off);
+  transition: color .1s, transform .1s;
+}
+.star:hover { transform: translateY(-1px); }
+.star.on { color: var(--yellow); }
+.field.bad .stars .star { color: var(--err); }
+/* Тач-цель: 30px символ + padding даёт ~44px, минимум для пальца. */
+@media (pointer: coarse) { .star { padding: 6px 8px; } }
+
 /* --- Секции -------------------------------------------------------------- */
 
 /* Заголовки набраны как markdown: страница читается как файл из specs/.

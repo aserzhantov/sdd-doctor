@@ -52,6 +52,21 @@ create table if not exists public.bookings (
                                    and slot_start <  timestamptz '2026-09-15 00:00+03')
 );
 
+-- Отзыв о приёме. Один на бронь: booking_id unique, повторная отправка
+-- переписывает прежний — человек может передумать и исправить.
+-- doctor_id денормализован, чтобы агрегаты не ходили через bookings.
+create table if not exists public.feedback (
+  id         uuid primary key default gen_random_uuid(),
+  booking_id uuid not null unique references public.bookings(id) on delete cascade,
+  doctor_id  text not null references public.doctors(id) on delete cascade,
+  rating     int  not null,                 -- 1-5 звёзд, единственное обязательное поле
+  useful     text,                          -- что было полезного
+  improve    text,                          -- чего не хватило
+  created_at timestamptz not null default now(),
+
+  constraint feedback_rating_chk check (rating between 1 and 5)
+);
+
 -- Приводим default в порядок и на уже существующей базе: выше отрабатывает
 -- только при первом создании таблицы.
 alter table public.bookings
@@ -111,10 +126,12 @@ create table if not exists public.access_tokens (
 alter table public.doctors       enable row level security;
 alter table public.bookings      enable row level security;
 alter table public.access_tokens enable row level security;
+alter table public.feedback      enable row level security;
 
 revoke all on public.doctors       from anon, authenticated;
 revoke all on public.bookings      from anon, authenticated;
 revoke all on public.access_tokens from anon, authenticated;
+revoke all on public.feedback      from anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Публичные view (без персональных данных)
@@ -221,8 +238,69 @@ begin
   return n > 0;
 end $$;
 
+-- Отзыв отправляет тот, у кого есть cancel_code своей брони: он выдаётся
+-- один раз при записи и лежит только в его браузере.
+--
+-- Ограничения «не раньше конца приёма» здесь СОЗНАТЕЛЬНО нет. Во-первых,
+-- отправить может только владелец кода, то есть сам участник, — вреда
+-- от раннего отзыва никакого. Во-вторых, серверная проверка времени сделала бы
+-- фичу непроверяемой до 14 сентября: все слоты лежат в дне мероприятия.
+-- Момент показа формы решает клиент, см. specs/10-flows.md.
+create or replace function public.submit_feedback(
+  p_booking_id uuid,
+  p_code       text,
+  p_rating     int,
+  p_useful     text default null,
+  p_improve    text default null
+) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare b public.bookings%rowtype;
+begin
+  select * into b from public.bookings
+   where bookings.id = p_booking_id
+     and bookings.cancel_code = p_code
+     and bookings.kind = 'participant';
+  if not found then
+    raise exception 'FORBIDDEN' using errcode = 'P0001';
+  end if;
+
+  if p_rating is null or p_rating < 1 or p_rating > 5 then
+    raise exception 'BAD_RATING' using errcode = 'P0004';
+  end if;
+
+  p_useful  := nullif(btrim(coalesce(p_useful,  '')), '');
+  p_improve := nullif(btrim(coalesce(p_improve, '')), '');
+  if char_length(coalesce(p_useful, ''))  > 500
+  or char_length(coalesce(p_improve, '')) > 500 then
+    raise exception 'BAD_TEXT' using errcode = 'P0004';
+  end if;
+
+  insert into public.feedback (booking_id, doctor_id, rating, useful, improve)
+  values (p_booking_id, b.doctor_id, p_rating, p_useful, p_improve)
+  on conflict (booking_id) do update set
+    rating     = excluded.rating,
+    useful     = excluded.useful,
+    improve    = excluded.improve,
+    created_at = now();
+  return true;
+end $$;
+
+-- Свой отзыв участник может перечитать — по тому же коду.
+create or replace function public.my_feedback(p_booking_id uuid, p_code text)
+returns table (rating int, useful text, improve text)
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  return query
+    select f.rating, f.useful, f.improve
+      from public.feedback f
+      join public.bookings b on b.id = f.booking_id
+     where f.booking_id = p_booking_id and b.cancel_code = p_code;
+end $$;
+
 grant execute on function public.book_slot(text, timestamptz, text, text) to anon, authenticated;
 grant execute on function public.cancel_booking(uuid, text)               to anon, authenticated;
+grant execute on function public.submit_feedback(uuid, text, int, text, text) to anon, authenticated;
+grant execute on function public.my_feedback(uuid, text)                      to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- RPC под токеном доктора
@@ -267,8 +345,31 @@ begin
   return true;
 end $$;
 
+-- Лента отзывов доктора. Привязка к слоту и к тому, что писал участник,
+-- здесь есть сознательно: доктору она нужна, чтобы вспомнить разговор.
+-- Участника об этом честно предупреждают в форме, см. specs/60-backlog.md.
+create or replace function public.doctor_feedback(p_doctor_id text, p_token text)
+returns table (
+  slot_start timestamptz, rating int, useful text, improve text,
+  role text, topic text, created_at timestamptz
+)
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  if not public.is_doctor_token(p_doctor_id, p_token) then
+    raise exception 'FORBIDDEN' using errcode = 'P0001';
+  end if;
+  return query
+    select b.slot_start, f.rating, f.useful, f.improve,
+           b.role, b.topic, f.created_at
+      from public.feedback f
+      join public.bookings b on b.id = f.booking_id
+     where f.doctor_id = p_doctor_id
+     order by b.slot_start;
+end $$;
+
 grant execute on function public.doctor_bookings(text, text)                        to anon, authenticated;
 grant execute on function public.doctor_block_slot(text, timestamptz, text, boolean) to anon, authenticated;
+grant execute on function public.doctor_feedback(text, text)                        to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- RPC под токеном админа
@@ -381,6 +482,26 @@ begin
      order by b.slot_start, d.sort;
 end $$;
 
+-- Отзывы для организатора — БЕЗ привязки к участнику: ни роли, ни темы,
+-- ни времени слота. Организатору нужна картина по докторам, а не разбор,
+-- кто именно поставил тройку. Средний балл считает клиент.
+create or replace function public.admin_feedback(p_token text)
+returns table (
+  doctor_id text, doctor_alias text, rating int,
+  useful text, improve text, created_at timestamptz
+)
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  if not public.is_admin_token(p_token) then
+    raise exception 'FORBIDDEN' using errcode = 'P0001';
+  end if;
+  return query
+    select f.doctor_id, d.alias, f.rating, f.useful, f.improve, f.created_at
+      from public.feedback f
+      join public.doctors d on d.id = f.doctor_id
+     order by d.sort, f.created_at;
+end $$;
+
 create or replace function public.admin_delete_booking(p_token text, p_id uuid)
 returns boolean language plpgsql security definer set search_path = public, extensions as $$
 declare n int;
@@ -398,3 +519,4 @@ grant execute on function public.admin_upsert_doctor(text, text, text, text, tex
                                                      time, time, int, boolean)                to anon, authenticated;
 grant execute on function public.admin_all_bookings(text)                                     to anon, authenticated;
 grant execute on function public.admin_delete_booking(text, uuid)                             to anon, authenticated;
+grant execute on function public.admin_feedback(text)                                         to anon, authenticated;

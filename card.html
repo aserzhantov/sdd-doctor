@@ -119,6 +119,10 @@
                 align-items: center; justify-content: center; }
 .sheet .right img.qr { width: 66mm; height: 66mm; display: block; }
 .sheet .qr-cap { font-size: 4.2mm; color: #6E6E68; margin-top: 3mm; line-height: 1.35; text-align: center; }
+/* Напоминание про отзыв — отдельным блоком под чертой: это второе действие,
+   и слипшись с инструкцией по записи оно читалось как её продолжение. */
+.sheet .qr-cap.after { margin-top: 4mm; padding-top: 3mm; border-top: .4mm solid #D5D4D0;
+                       color: #0D0D0D; font-weight: 700; }
 
 .sheet .foot { display: flex; align-items: center; justify-content: space-between;
                border-top: .5mm solid #D5D4D0; padding-top: 4mm; font-size: 4.4mm; color: #6E6E68; }
@@ -210,8 +214,12 @@ function render() {
 function sheet(d) {
   const n = d.table_no;
   // Один и тот же общий QR на всех табличках — ведёт на витрину докторов.
+  // Вторая строка — единственное напоминание про отзыв, которое физически лежит
+  // на столе. Технических каналов вернуть человека к форме у нас нет: пуши
+  // требуют разрешения, почту и телефон мы не собираем. См. specs/60-backlog.md.
   const qr = `<img class="qr" src="qr/main.png" alt="QR на запись">
-       <div class="qr-cap">Наведите камеру телефона,<br>выберите доктора и свободное время</div>`;
+       <div class="qr-cap">Наведите камеру телефона,<br>выберите доктора и свободное время</div>
+       <div class="qr-cap after">После приёма —<br>оцените визит<br>по тому же коду</div>`;
 
   return `
     <div class="sheet">

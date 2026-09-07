@@ -34,6 +34,8 @@ const TOKEN  = App.qs('t');
 
 let DOCTOR = null;
 let ROWS = [];
+let FEEDBACK = [];
+let TAB = 'plan';
 let lastOk = null;
 
 const $ = (id) => document.getElementById(id);
@@ -51,7 +53,12 @@ async function load() {
       const docs = await App.select('v_doctors', `select=*&id=eq.${encodeURIComponent(DOC_ID)}`);
       DOCTOR = (docs && docs[0]) || null;
     }
-    ROWS = await App.rpc('doctor_bookings', { p_doctor_id: DOC_ID, p_token: TOKEN });
+    // Отзывы грузим вместе с расписанием: отдельный запрос при переключении
+    // вкладки давал бы пустой экран на секунду при плохой связи в зале.
+    [ROWS, FEEDBACK] = await Promise.all([
+      App.rpc('doctor_bookings', { p_doctor_id: DOC_ID, p_token: TOKEN }),
+      App.rpc('doctor_feedback', { p_doctor_id: DOC_ID, p_token: TOKEN }).catch(() => []),
+    ]);
     lastOk = new Date();
     $('banner').classList.add('hidden');
     render();
@@ -76,6 +83,9 @@ function render() {
   const off   = App.offGrid(ROWS, slots);
 
   const guests = ROWS.filter(r => r.kind === 'participant');
+  const avg = FEEDBACK.length
+    ? (FEEDBACK.reduce((s, f) => s + f.rating, 0) / FEEDBACK.length).toFixed(1)
+    : null;
   const cur  = slots.find(s => s.start <= now && now < s.end && occ.get(s.key)?.kind === 'participant');
   const next = slots.find(s => s.start > now && occ.get(s.key)?.kind === 'participant');
 
@@ -90,6 +100,9 @@ function render() {
       </div>
       <div class="big">${rec ? App.esc(rec.role) : empty}</div>
       ${rec && rec.topic ? `<div class="sub">${App.esc(rec.topic)}</div>` : ''}
+      ${rec && label === 'Сейчас' ? `<div class="sub" style="color:var(--yellow);margin-top:8px">
+        в конце приёма попросите оценить визит — QR на столе тот же
+      </div>` : ''}
     </div>`;
   };
 
@@ -102,12 +115,20 @@ function render() {
           <div style="color:var(--muted);font-size:13px">
             ${DOCTOR.table_no ? 'Стол №' + App.esc(DOCTOR.table_no) + ' · ' : ''}
             сегодня приёмов: <b>${guests.length}</b>
+            ${avg ? ` · рейтинг <b style="color:var(--yellow)">★ ${avg}</b>
+                     <span style="color:var(--faint)">(${App.esc(App.plural(FEEDBACK.length, 'отзыв', 'отзыва', 'отзывов'))})</span>` : ''}
           </div>
         </div>
       </div>
       <button class="btn ghost sm" id="btnReload">Обновить</button>
     </div>
 
+    <div class="tabs">
+      <button id="tPlan" class="${TAB === 'plan' ? 'active' : ''}">Расписание</button>
+      <button id="tFb"   class="${TAB === 'fb'   ? 'active' : ''}">Отзывы (${FEEDBACK.length})</button>
+    </div>
+
+    ${TAB === 'fb' ? renderFeedback() : `
     ${card('Сейчас', cur, 'Свободно')}
     ${card('Следующий', next, 'Больше записей нет')}
 
@@ -145,13 +166,46 @@ function render() {
         <div class="t">${App.fmtTime(new Date(r.slot_start))}</div>
         <div class="n"><b>${App.esc(r.role || '—')}</b><div class="sm">${App.esc(r.topic || '')}</div></div>
       </div>`).join('')}
-    </div>` : ''}`;
+    </div>` : ''}`}`;
 
   $('btnReload').onclick = load;
+  $('tPlan').onclick = () => { TAB = 'plan'; render(); };
+  $('tFb').onclick   = () => { TAB = 'fb';   render(); };
   document.querySelectorAll('[data-block]').forEach(b =>
     b.onclick = () => setBlock(Number(b.dataset.block), true));
   document.querySelectorAll('[data-unblock]').forEach(b =>
     b.onclick = () => setBlock(Number(b.dataset.unblock), false));
+}
+
+/* Лента отзывов. Привязка к слоту и к тому, что писал участник, здесь есть
+ * сознательно — доктору она нужна, чтобы вспомнить разговор. Участника об этом
+ * честно предупреждают в форме, см. specs/60-backlog.md. */
+function renderFeedback() {
+  if (!FEEDBACK.length) {
+    return `<div class="empty">
+      <img src="assets/unicorn.png" alt="" onerror="this.remove()">
+      <div class="t">Отзывов пока нет</div>
+      <div class="s">попросите оценить визит в конце приёма — QR на столе тот же</div>
+    </div>`;
+  }
+
+  const stars = (n) => `<span style="color:var(--yellow);letter-spacing:2px">${'★'.repeat(n)}</span>` +
+                       `<span style="color:var(--off);letter-spacing:2px">${'★'.repeat(5 - n)}</span>`;
+
+  return `<div class="card">
+    <h3>Отзывы</h3>
+    ${FEEDBACK.map(f => `<div class="line-item" style="align-items:flex-start">
+      <div class="t">${App.fmtTime(new Date(f.slot_start))}</div>
+      <div class="n">
+        <div style="font-size:15px">${stars(f.rating)}</div>
+        <div class="sm" style="margin-top:2px">
+          ${App.esc(f.role || '—')}${f.topic ? ' · ' + App.esc(f.topic) : ''}
+        </div>
+        ${f.useful ? `<div style="margin-top:8px"><b>Полезное:</b> ${App.esc(f.useful)}</div>` : ''}
+        ${f.improve ? `<div style="margin-top:4px;color:var(--muted)"><b>Улучшить:</b> ${App.esc(f.improve)}</div>` : ''}
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 async function setBlock(key, blocked) {

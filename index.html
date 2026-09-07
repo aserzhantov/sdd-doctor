@@ -132,22 +132,115 @@ function renderMine() {
   // Показывать сырой идентификатор нельзя, это пугает и ничего не объясняет.
   const doc = DOCTORS.find(d => d.id === mine.doctor_id);
   const start = new Date(mine.slot_start);
+  const end   = App.addMinutes(start, CONFIG.SLOT_MINUTES);
+  // Приём закончился — блок из «вашей записи» превращается в «оцените приём».
+  // Единственный способ вернуть человека к отзыву: он сам откроет страницу,
+  // поэтому доктор просит об этом вслух, а на табличке лежит напоминание.
+  const over  = new Date() >= end;
+
   host.innerHTML = `
     <div class="mine-card">
-      <div class="label">Ваша запись</div>
+      <div class="label">${over ? 'Приём завершён' : 'Ваша запись'}</div>
       <div class="who">${doc ? App.esc(doc.alias) : 'Доктор снят с приёма'}</div>
       <div class="when">
-        ${App.esc(App.fmtTime(start))}–${App.esc(App.fmtTime(App.addMinutes(start, CONFIG.SLOT_MINUTES)))}
+        ${App.esc(App.fmtTime(start))}–${App.esc(App.fmtTime(end))}
         ${doc && doc.table_no ? ' · стол №' + App.esc(doc.table_no) : ''}
       </div>
       ${doc ? '' : `<div class="when" style="color:var(--orange)">
         Уточните у организаторов — запись лучше отменить.
       </div>`}
+      ${over ? '' : `<div class="note-line" style="margin:10px 0 0">после приёма попросим оценить визит</div>`}
       <div class="btn-row">
-        <button class="btn ghost sm" id="btnCancel">Отменить запись</button>
+        ${over
+          ? `<button class="btn sm" id="btnRate">${mine.rated ? 'Изменить отзыв' : 'Оценить приём'}</button>`
+          : ''}
+        <button class="btn ghost sm" id="btnCancel">${over ? 'Убрать запись' : 'Отменить запись'}</button>
       </div>
+      ${over && mine.rated ? `<div class="note-line" style="margin:10px 0 0">
+        спасибо, отзыв сохранён — ${App.esc(App.plural(mine.rated, 'звезда', 'звезды', 'звёзд'))}
+      </div>` : ''}
+      <div id="rateHost"></div>
     </div>`;
   $('btnCancel').onclick = cancelBooking;
+  if (over) $('btnRate').onclick = () => renderRating(mine, doc);
+}
+
+/* --- Отзыв о приёме ------------------------------------------------------
+ * Обязательны только звёзды: два текстовых поля многие пропустят, и это
+ * нормально — оценка сама по себе даёт картину. */
+
+function renderRating(mine, doc) {
+  const host = $('rateHost');
+  if (host.dataset.open === '1') { host.innerHTML = ''; host.dataset.open = '0'; return; }
+  host.dataset.open = '1';
+
+  let stars = mine.rated || 0;
+  host.innerHTML = `
+    <div class="form" style="margin-top:14px">
+      <div class="field">
+        <label>Как прошёл приём</label>
+        <div class="stars" id="stars">
+          ${[1, 2, 3, 4, 5].map(n =>
+            `<button type="button" class="star" data-n="${n}" aria-label="${n} из 5">★</button>`).join('')}
+        </div>
+        <div class="err">Поставьте оценку</div>
+      </div>
+      <div class="field">
+        <label for="iUseful">Что было полезного</label>
+        <textarea id="iUseful" maxlength="500" placeholder="Необязательно"></textarea>
+      </div>
+      <div class="field">
+        <label for="iImprove">Чего не хватило</label>
+        <textarea id="iImprove" maxlength="500" placeholder="Необязательно"></textarea>
+      </div>
+      <div class="note-line" style="margin:0 0 12px">
+        отзыв увидит доктор рядом с вашим слотом и организаторы
+      </div>
+      <button class="btn" id="btnSendRate">Отправить</button>
+    </div>`;
+
+  const paint = () => document.querySelectorAll('.star').forEach(
+    b => b.classList.toggle('on', Number(b.dataset.n) <= stars));
+  document.querySelectorAll('.star').forEach(b => b.onclick = () => {
+    stars = Number(b.dataset.n);
+    $('stars').parentElement.classList.remove('bad');
+    paint();
+  });
+  paint();
+
+  // Прошлый отзыв подтягиваем, чтобы «изменить» правил текст, а не начинал с нуля.
+  if (mine.rated) {
+    App.rpc('my_feedback', { p_booking_id: mine.id, p_code: mine.cancel_code })
+      .then(rows => {
+        const f = rows && rows[0];
+        if (!f) return;
+        $('iUseful').value  = f.useful  || '';
+        $('iImprove').value = f.improve || '';
+      })
+      .catch(() => {});
+  }
+
+  $('btnSendRate').onclick = async () => {
+    if (!stars) { $('stars').parentElement.classList.add('bad'); return; }
+    const btn = $('btnSendRate');
+    btn.disabled = true; btn.textContent = 'Отправляем…';
+    try {
+      await App.rpc('submit_feedback', {
+        p_booking_id: mine.id,
+        p_code:       mine.cancel_code,
+        p_rating:     stars,
+        p_useful:     $('iUseful').value.trim() || null,
+        p_improve:    $('iImprove').value.trim() || null,
+      });
+      App.lsSet(App.KEY_BOOKING, { ...mine, rated: stars });
+      App.toast('Спасибо за отзыв', 'ok');
+      host.dataset.open = '0';
+      render();
+    } catch (e) {
+      App.toast(App.errText(e), 'err');
+      btn.disabled = false; btn.textContent = 'Отправить';
+    }
+  };
 }
 
 /* --- Шаг 1: витрина ------------------------------------------------------ */

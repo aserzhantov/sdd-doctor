@@ -57,6 +57,7 @@
           cancel_code:'x4' + i }
       )),
     ],
+    feedback: [],
   };
 
   const read  = () => App.lsGet(KEY, null) || (App.lsSet(KEY, SEED), SEED);
@@ -107,8 +108,57 @@
         const i = db.bookings.findIndex(
           b => b.id === a.p_id && b.cancel_code === a.p_code && b.kind === 'participant');
         if (i < 0) return false;
-        db.bookings.splice(i, 1); write(db);
+        db.bookings.splice(i, 1);
+        // в БД это делает on delete cascade
+        db.feedback = (db.feedback || []).filter(f => f.booking_id !== a.p_id);
+        write(db);
         return true;
+      }
+
+      case 'submit_feedback': {
+        const b = db.bookings.find(
+          x => x.id === a.p_booking_id && x.cancel_code === a.p_code && x.kind === 'participant');
+        if (!b) fail('P0001');
+        if (!(a.p_rating >= 1 && a.p_rating <= 5)) fail('P0004');
+        const clip = (v) => (v || '').trim() || null;
+        db.feedback = db.feedback || [];
+        const prev = db.feedback.find(f => f.booking_id === a.p_booking_id);
+        const row = { booking_id: a.p_booking_id, doctor_id: b.doctor_id, rating: a.p_rating,
+                      useful: clip(a.p_useful), improve: clip(a.p_improve),
+                      created_at: new Date().toISOString() };
+        if (prev) Object.assign(prev, row); else db.feedback.push(row);
+        write(db);
+        return true;
+      }
+
+      case 'my_feedback': {
+        const b = db.bookings.find(x => x.id === a.p_booking_id && x.cancel_code === a.p_code);
+        if (!b) return [];
+        const f = (db.feedback || []).find(x => x.booking_id === a.p_booking_id);
+        return f ? [{ rating: f.rating, useful: f.useful, improve: f.improve }] : [];
+      }
+
+      case 'doctor_feedback': {
+        const d = db.doctors.find(x => x.id === a.p_doctor_id);
+        if (!d || a.p_token !== d.token) fail('P0001');
+        return (db.feedback || [])
+          .filter(f => f.doctor_id === a.p_doctor_id)
+          .map(f => {
+            const b = db.bookings.find(x => x.id === f.booking_id) || {};
+            return { ...f, slot_start: b.slot_start, role: b.role, topic: b.topic };
+          })
+          .sort((x, y) => new Date(x.slot_start) - new Date(y.slot_start));
+      }
+
+      case 'admin_feedback': {
+        if (a.p_token !== 'mock-admin') fail('P0001');
+        // как настоящая RPC: без роли, темы и времени слота
+        return (db.feedback || []).map(f => {
+          const d = db.doctors.find(x => x.id === f.doctor_id) || {};
+          return { doctor_id: f.doctor_id, doctor_alias: d.alias || f.doctor_id,
+                   rating: f.rating, useful: f.useful, improve: f.improve,
+                   created_at: f.created_at };
+        });
       }
 
       case 'doctor_bookings': {
@@ -168,7 +218,10 @@
         if (a.p_token !== 'mock-admin') fail('P0001');
         const i = db.bookings.findIndex(b => b.id === a.p_id);
         if (i < 0) return false;
-        db.bookings.splice(i, 1); write(db);
+        db.bookings.splice(i, 1);
+        // в БД это делает on delete cascade
+        db.feedback = (db.feedback || []).filter(f => f.booking_id !== a.p_id);
+        write(db);
         return true;
       }
     }

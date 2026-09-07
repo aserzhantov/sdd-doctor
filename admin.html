@@ -35,6 +35,7 @@
 const TOKEN = App.qs('t');
 let DOCS = [];
 let BOOKINGS = [];
+let FEEDBACK = [];
 let TAB = 'docs';
 let editing = null;
 
@@ -44,9 +45,10 @@ const deny = (m) => { $('root').innerHTML = `<div class="notice">${App.esc(m)}</
 async function load() {
   if (!TOKEN) return deny('Ссылка неполная. Нужен токен организатора.');
   try {
-    [DOCS, BOOKINGS] = await Promise.all([
+    [DOCS, BOOKINGS, FEEDBACK] = await Promise.all([
       App.rpc('admin_list_doctors', { p_token: TOKEN }),
       App.rpc('admin_all_bookings', { p_token: TOKEN }),
+      App.rpc('admin_feedback',     { p_token: TOKEN }).catch(() => []),
     ]);
     $('banner').classList.add('hidden');
     render();
@@ -64,11 +66,13 @@ function render() {
     <div class="tabs">
       <button id="tDocs"  class="${TAB === 'docs' ? 'active' : ''}">Доктора (${DOCS.length})</button>
       <button id="tBook"  class="${TAB === 'book' ? 'active' : ''}">Записи (${BOOKINGS.filter(b => b.kind === 'participant').length})</button>
+      <button id="tFb"    class="${TAB === 'fb'   ? 'active' : ''}">Отзывы (${FEEDBACK.length})</button>
     </div>
     <div id="tab"></div>`;
   $('tDocs').onclick = () => { TAB = 'docs'; render(); };
   $('tBook').onclick = () => { TAB = 'book'; render(); };
-  (TAB === 'docs' ? renderDocs : renderBookings)();
+  $('tFb').onclick   = () => { TAB = 'fb';   render(); };
+  ({ docs: renderDocs, book: renderBookings, fb: renderFeedback })[TAB]();
 }
 
 function renderDocs() {
@@ -222,6 +226,69 @@ async function save() {
 }
 
 /* --- Записи -------------------------------------------------------------- */
+
+/* Отзывы для организатора — БЕЗ привязки к участникам: ни роли, ни темы,
+ * ни времени слота. RPC их и не отдаёт. Организатору нужна картина по докторам,
+ * а не разбор, кто именно поставил тройку. См. specs/60-backlog.md.
+ *
+ * Сравнительный рейтинг живёт здесь, а не на доске зоны: доска висит на экране
+ * в зале, и доктор с 3.6 против 4.8 у соседа провёл бы неприятные три часа. */
+function renderFeedback() {
+  const byDoc = DOCS.map(d => {
+    const rows = FEEDBACK.filter(f => f.doctor_id === d.id);
+    const avg = rows.length ? rows.reduce((s, f) => s + f.rating, 0) / rows.length : null;
+    return { d, rows, avg };
+  }).filter(x => x.rows.length).sort((a, b) => b.avg - a.avg);
+
+  const all = FEEDBACK.length
+    ? (FEEDBACK.reduce((s, f) => s + f.rating, 0) / FEEDBACK.length).toFixed(1)
+    : null;
+
+  const bar = (avg) => `<div style="height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden">
+    <div style="height:100%;width:${(avg / 5 * 100).toFixed(0)}%;background:var(--yellow)"></div>
+  </div>`;
+
+  $('tab').innerHTML = `
+    <div class="row-between" style="margin:18px 0 12px">
+      <div class="section-title" style="margin:0">Отзывы о приёмах</div>
+      ${all ? `<div style="color:var(--muted);font-size:13px">
+        всего <b style="color:var(--yellow)">★ ${all}</b> по ${App.esc(App.plural(FEEDBACK.length, 'отзыву', 'отзывам', 'отзывам'))}
+      </div>` : ''}
+    </div>
+
+    ${!FEEDBACK.length ? '<div class="notice">Отзывов пока нет.</div>' : `
+      <div class="card">
+        <h3>Рейтинг по докторам</h3>
+        ${byDoc.map(({ d, rows, avg }) => `
+          <div class="line-item" style="align-items:center">
+            <div class="n">
+              <div><b>${App.esc(d.alias)}</b>
+                <span style="color:var(--faint);font-size:12.5px">
+                  · ${App.esc(App.plural(rows.length, 'отзыв', 'отзыва', 'отзывов'))}
+                </span>
+              </div>
+              <div style="margin-top:6px;max-width:280px">${bar(avg)}</div>
+            </div>
+            <div style="color:var(--yellow);font-weight:700;white-space:nowrap">★ ${avg.toFixed(1)}</div>
+          </div>`).join('')}
+        <div style="color:var(--faint);font-size:12px;margin-top:10px">
+          // доктора без отзывов в списке не показаны
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Что пишут</h3>
+        ${FEEDBACK.map(f => `<div class="line-item" style="align-items:flex-start">
+          <div class="t" style="color:var(--yellow);white-space:nowrap">★ ${f.rating}</div>
+          <div class="n">
+            <div class="sm"><b>${App.esc(f.doctor_alias)}</b></div>
+            ${f.useful ? `<div style="margin-top:6px"><b>Полезное:</b> ${App.esc(f.useful)}</div>` : ''}
+            ${f.improve ? `<div style="margin-top:4px;color:var(--muted)"><b>Улучшить:</b> ${App.esc(f.improve)}</div>` : ''}
+            ${!f.useful && !f.improve ? '<div style="color:var(--faint)">без комментария</div>' : ''}
+          </div>
+        </div>`).join('')}
+      </div>`}`;
+}
 
 function renderBookings() {
   const rows = BOOKINGS.slice().sort((a, b) => new Date(a.slot_start) - new Date(b.slot_start));
