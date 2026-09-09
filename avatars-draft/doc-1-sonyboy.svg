@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="256" cy="256" r="248" fill="#EAE9E7" stroke="#0D0D0D" stroke-width="10"/>
+  <g transform="translate(0,-16)">
+  <!-- корпус кассеты -->
+  <rect x="86" y="150" width="340" height="214" rx="22" fill="#fff" stroke="#0D0D0D" stroke-width="12"/>
+  <!-- жёлтая наклейка -->
+  <rect x="112" y="176" width="288" height="66" rx="10" fill="#FED000" stroke="#0D0D0D" stroke-width="9"/>
+  <line x1="136" y1="199" x2="330" y2="199" stroke="#0D0D0D" stroke-width="9" stroke-linecap="round"/>
+  <line x1="136" y1="221" x2="272" y2="221" stroke="#0D0D0D" stroke-width="9" stroke-linecap="round"/>
+  <!-- окно с катушками -->
+  <rect x="126" y="262" width="260" height="76" rx="12" fill="#EAE9E7" stroke="#0D0D0D" stroke-width="9"/>
+  <g stroke="#0D0D0D" stroke-width="9" fill="none">
+    <circle cx="184" cy="300" r="26" fill="#fff"/><circle cx="328" cy="300" r="26" fill="#fff"/>
+    <line x1="210" y1="300" x2="302" y2="300"/>
+  </g>
+  <circle cx="184" cy="300" r="7" fill="#0D0D0D"/><circle cx="328" cy="300" r="7" fill="#0D0D0D"/>
+  <!-- мультирепы: один узел ветвится в три -->
+  <g stroke="#0D0D0D" stroke-width="10" fill="none" stroke-linecap="round">
+    <path d="M256 364 v22"/>
+    <path d="M156 424 v-14 h200 v14"/>
+    <path d="M256 386 v24"/>
+  </g>
+  <circle cx="156" cy="436" r="15" fill="#0D0D0D"/>
+  <circle cx="256" cy="436" r="15" fill="#0D0D0D"/>
+  <circle cx="356" cy="436" r="15" fill="#0D0D0D"/>
+  </g>
+</svg>

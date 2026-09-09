@@ -109,6 +109,11 @@ function render() {
   $('root').innerHTML = `
     <div class="row-between" style="margin:18px 0 16px">
       <div class="slot-head" style="margin:0">
+        <!-- Эмблема доктора — та же, что видит участник на витрине. Единорога
+             в кабинете нет и не будет (рабочий экран, см. CLAUDE.md), а вот
+             собственный знак здесь уместен: он опознаёт кабинет как свой. -->
+        <img class="ava" src="assets/avatars/${App.esc(DOC_ID)}.svg" alt=""
+             onerror="this.remove()">
         <div>
           <div style="font-size:20px;font-weight:800">${App.esc(DOCTOR.alias)}</div>
           ${DOCTOR.role ? `<div style="color:var(--muted);font-size:13px">${App.esc(DOCTOR.role)}</div>` : ''}

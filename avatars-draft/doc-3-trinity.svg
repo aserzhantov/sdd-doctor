@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="256" cy="256" r="248" fill="#EAE9E7" stroke="#0D0D0D" stroke-width="10"/>
+  <defs>
+    <clipPath id="lensL"><rect x="86" y="160" width="150" height="104" rx="22"/></clipPath>
+    <clipPath id="lensR"><rect x="276" y="160" width="150" height="104" rx="22"/></clipPath>
+  </defs>
+  <!-- дужки -->
+  <path d="M86 190 h-34 M426 190 h34" stroke="#0D0D0D" stroke-width="14" stroke-linecap="round"/>
+  <line x1="236" y1="196" x2="276" y2="196" stroke="#0D0D0D" stroke-width="14"/>
+  <!-- линзы -->
+  <rect x="86" y="160" width="150" height="104" rx="22" fill="#0D0D0D"/>
+  <rect x="276" y="160" width="150" height="104" rx="22" fill="#0D0D0D"/>
+  <!-- цифровой дождь внутри линз -->
+  <g clip-path="url(#lensL)" stroke="#47BAD5" stroke-width="9" stroke-linecap="round">
+    <line x1="112" y1="168" x2="112" y2="214"/><line x1="140" y1="186" x2="140" y2="256"/>
+    <line x1="168" y1="164" x2="168" y2="200"/><line x1="196" y1="196" x2="196" y2="252"/>
+    <line x1="224" y1="172" x2="224" y2="222"/>
+  </g>
+  <g clip-path="url(#lensR)" stroke="#47BAD5" stroke-width="9" stroke-linecap="round">
+    <line x1="300" y1="180" x2="300" y2="248"/><line x1="328" y1="164" x2="328" y2="206"/>
+    <line x1="356" y1="192" x2="356" y2="256"/><line x1="384" y1="168" x2="384" y2="212"/>
+    <line x1="412" y1="188" x2="412" y2="238"/>
+  </g>
+  <rect x="86" y="160" width="150" height="104" rx="22" fill="none" stroke="#0D0D0D" stroke-width="12"/>
+  <rect x="276" y="160" width="150" height="104" rx="22" fill="none" stroke="#0D0D0D" stroke-width="12"/>
+  <!-- три кольца -->
+  <g fill="none" stroke="#0D0D0D" stroke-width="14">
+    <circle cx="216" cy="408" r="42"/><circle cx="296" cy="408" r="42"/><circle cx="256" cy="344" r="42"/>
+  </g>
+</svg>

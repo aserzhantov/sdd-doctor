@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="256" cy="256" r="248" fill="#EAE9E7" stroke="#0D0D0D" stroke-width="10"/>
+  <!-- антенна -->
+  <line x1="256" y1="112" x2="256" y2="146" stroke="#0D0D0D" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="100" r="18" fill="#F84D15" stroke="#0D0D0D" stroke-width="10"/>
+  <!-- голова -->
+  <rect x="112" y="146" width="288" height="210" rx="40" fill="#fff" stroke="#0D0D0D" stroke-width="12"/>
+  <!-- молния «болит» на лбу -->
+  <path d="M280 176 l-52 54 h34 l-22 40 60 -62 h-36 z" fill="#F84D15" stroke="#0D0D0D" stroke-width="7" stroke-linejoin="round"/>
+  <!-- глаза -->
+  <rect x="152" y="284" width="72" height="30" rx="15" fill="#0D0D0D"/>
+  <rect x="288" y="284" width="72" height="30" rx="15" fill="#0D0D0D"/>
+  <!-- рот -->
+  <path d="M198 344 q58 -24 116 0" fill="none" stroke="#0D0D0D" stroke-width="11" stroke-linecap="round"/>
+  <!-- гантель: Unicorn Gym -->
+  <g stroke="#0D0D0D" stroke-width="12" stroke-linecap="round">
+    <line x1="176" y1="412" x2="336" y2="412"/>
+  </g>
+  <rect x="126" y="382" width="42" height="60" rx="12" fill="#0D0D0D"/>
+  <rect x="344" y="382" width="42" height="60" rx="12" fill="#0D0D0D"/>
+  <rect x="176" y="392" width="26" height="40" rx="9" fill="#fff" stroke="#0D0D0D" stroke-width="10"/>
+  <rect x="310" y="392" width="26" height="40" rx="9" fill="#fff" stroke="#0D0D0D" stroke-width="10"/>
+</svg>

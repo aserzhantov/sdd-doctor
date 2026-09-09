@@ -90,7 +90,16 @@
 /* Фотографии здесь больше нет: изображение лица — персональные данные,
    см. specs/60-backlog.md. Освободившиеся 30 мм отданы алиасу — он теперь
    единственное, чем доктор представлен, и должен читаться через стол. */
-.sheet .who { min-width: 0; }
+/* Эмблема доктора — рисунок по алиасу и опыту, не фотография (фото это
+   персональные данные, см. specs/60-backlog.md). Стоит там же, где на прежнем
+   макете стояла фотография: слева от алиаса, между панелью стола и текстом.
+
+   Цену этого места стоит знать: колонка сужается на ширину эмблемы с отбивкой,
+   и длинный алиас теперь охотнее уезжает на вторую строку. Поэтому эмблема
+   заметно меньше прежнего фото, а не в его размер. */
+.sheet .who { min-width: 0; display: flex; gap: 5mm; align-items: flex-start; }
+.sheet .who img.ava { width: 26mm; height: 26mm; flex: none; }
+.sheet .who-t { min-width: 0; }
 
 /* Длинные алиасы и роли встречаются, поэтому все тексты ограничены
    по числу строк — макет не должен зависеть от того, что напишут в админке. */
@@ -278,8 +287,12 @@ function sheet(d) {
 
         <div class="who-col">
           <div class="who">
-            <div class="name clamp">${App.esc(d.alias)}</div>
-            ${d.role ? `<div class="role clamp">${App.esc(d.role)}</div>` : ''}
+            <img class="ava" src="assets/avatars/${App.esc(d.id)}.svg" alt=""
+                 onerror="this.remove()">
+            <div class="who-t">
+              <div class="name clamp">${App.esc(d.alias)}</div>
+              ${d.role ? `<div class="role clamp">${App.esc(d.role)}</div>` : ''}
+            </div>
           </div>
 
           ${d.specialty ? `<div><span class="spec"><span class="spec-t">${App.esc(d.specialty)}</span></span></div>` : ''}

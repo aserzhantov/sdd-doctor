@@ -304,6 +304,8 @@ function renderList() {
 
     return `
       <button class="doc" data-id="${App.esc(d.id)}" ${locked ? 'disabled' : ''}>
+        <img class="ava" src="assets/avatars/${App.esc(d.id)}.svg" alt=""
+             onerror="this.remove()">
         <div class="body">
           <div class="name">${App.esc(d.alias)}</div>
           ${d.role ? `<div class="role">${App.esc(d.role)}</div>` : ''}
@@ -362,6 +364,8 @@ function renderSlots(id) {
   host.innerHTML = `
     <button class="back" id="btnBack">← Все доктора</button>
     <div class="slot-head">
+      <img class="ava" src="assets/avatars/${App.esc(d.id)}.svg" alt=""
+           onerror="this.remove()">
       <div>
         <div class="name" style="font-size:19px;font-weight:700">${App.esc(d.alias)}</div>
         ${d.role ? `<div class="role" style="font-size:12.5px">${App.esc(d.role)}</div>` : ''}
