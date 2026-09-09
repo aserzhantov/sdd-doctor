@@ -110,9 +110,13 @@
 .sheet .bio-title { margin-top: 6mm; font-size: 3.6mm; font-weight: 700; letter-spacing: 1mm;
                     color: #8A8A85; text-transform: uppercase; }
 /* Опыт — единственный абзац прозы на листе, поэтому наборным шрифтом:
-   пять строк моноширинного читаются заметно медленнее. */
+   строки моноширинного читаются заметно медленнее.
+   Число строк здесь — только базовое: 8 влезает даже в худшем случае, когда
+   алиас, роль и чип разошлись каждый на две строки. Фактический предел
+   считает fitBio() после загрузки шрифтов — колонка почти всегда короче
+   худшего случая, и остаток отдаётся тексту, а не белому полю. */
 .sheet .bio { margin-top: 2mm; font-family: var(--font); font-size: 4.6mm; line-height: 1.4;
-              color: #353533; -webkit-line-clamp: 5; }
+              color: #353533; -webkit-line-clamp: 8; }
 
 /* --- Зона 3: запись --- */
 .sheet .right { width: 68mm; flex: none; display: flex; flex-direction: column;
@@ -212,8 +216,37 @@ function render() {
   if (!active.length) return deny('Нет активных докторов. Заведите их в админке.');
 
   $('sheets').innerHTML = active.map(sheet).join('');
+  fitBio();
   $('foot').textContent =
     `Готово табличек: ${active.length}. QR один на всё мероприятие и ведёт на витрину — при замене доктора он остаётся рабочим.`;
+}
+
+/* Подгонка «Опыта» под фактический остаток колонки.
+ *
+ * Клэмп в CSS обязан быть посчитан на худший случай — иначе длинный алиас
+ * выдавит текст за край листа. Но худший случай редок: обычно алиас в одну
+ * строку, и под абзацем оставалось пустое поле в треть колонки.
+ *
+ * Здесь меряется, сколько места реально осталось под заголовком «Опыт»,
+ * и клэмп поднимается до этого числа строк. Считать надо ПОСЛЕ загрузки
+ * шрифтов: до неё метрики фолбэка врут, и строк насчитается больше, чем влезет.
+ * Минимум 5 — как было; ниже не опускаемся, даже если что-то намерялось криво. */
+function fitBio() {
+  const apply = () => document.querySelectorAll('.sheet .bio').forEach((bio) => {
+    const col = bio.closest('.who-col');
+    if (!col) return;
+    const lineH = parseFloat(getComputedStyle(bio).lineHeight);
+    if (!lineH) return;
+    const avail = col.getBoundingClientRect().bottom - bio.getBoundingClientRect().top;
+    bio.style.webkitLineClamp = Math.max(5, Math.floor(avail / lineH));
+  });
+  apply();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(apply);
+  // Пересчёт перед печатью: диалог печати пересобирает раскладку под свой DPI,
+  // и посчитанное на экране число строк может разойтись с тем, что влезет на лист.
+  // Листенер один на страницу: apply() каждый раз обходит актуальный DOM,
+  // так что вешать новый на каждый render() незачем.
+  if (!fitBio.bound) { fitBio.bound = true; window.addEventListener('beforeprint', () => fitBio()); }
 }
 
 function sheet(d) {
